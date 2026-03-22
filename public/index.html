@@ -1,0 +1,1788 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game of Consults - Radiator Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a15;
+            color: #eee;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .radiator-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        /* Top Bar */
+        .header {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 20px 30px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .game-title {
+            font-size: 42px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d9ff, #06ffa5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 40px;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00d9ff;
+            line-height: 1.2;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        .event-feed {
+            flex: 1 1 auto;
+            min-height: 200px;
+            overflow: visible;
+            /* Remove scroll bar, let it grow */
+        }
+
+        /* Map Grid - Horizontal Layout */
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            /* height removed to allow content to grow */
+        }
+
+        .area {
+            background: #16213e;
+            border: 3px solid;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .area.education {
+            border-color: #9d4edd;
+            background: linear-gradient(135deg, #16213e 0%, #2a1a4e 100%);
+        }
+
+        .area.relaxation {
+            border-color: #06ffa5;
+            background: linear-gradient(135deg, #16213e 0%, #1a3e2e 100%);
+        }
+
+        .area.easy-market {
+            border-color: #4cc9f0;
+            background: linear-gradient(135deg, #16213e 0%, #1a2e4e 100%);
+        }
+
+        .area.hard-market {
+            border-color: #f72585;
+            background: linear-gradient(135deg, #16213e 0%, #3e1a2e 100%);
+        }
+
+        .area-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .area-icon {
+            font-size: 32px;
+            margin-right: 10px;
+        }
+
+        .area-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .education .area-title { color: #c77dff; }
+        .relaxation .area-title { color: #06ffa5; }
+        .easy-market .area-title { color: #4cc9f0; }
+        .hard-market .area-title { color: #f72585; }
+
+        .bot-count {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .mini-bots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .bot-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid;
+            transition: all 0.2s;
+            cursor: pointer;
+            max-width: 140px;
+        }
+
+        .bot-chip:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .bot-chip-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .bot-chip-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Bot color themes - 20 distinct colors */
+        .bot-color-1 { background: rgba(255, 107, 107, 0.2); border-color: #ff6b6b; color: #ff6b6b; }
+        .bot-color-2 { background: rgba(78, 205, 196, 0.2); border-color: #4ecdc4; color: #4ecdc4; }
+        .bot-color-3 { background: rgba(255, 195, 0, 0.2); border-color: #ffc300; color: #ffc300; }
+        .bot-color-4 { background: rgba(157, 78, 221, 0.2); border-color: #9d4edd; color: #9d4edd; }
+        .bot-color-5 { background: rgba(6, 255, 165, 0.2); border-color: #06ffa5; color: #06ffa5; }
+        .bot-color-6 { background: rgba(76, 201, 240, 0.2); border-color: #4cc9f0; color: #4cc9f0; }
+        .bot-color-7 { background: rgba(247, 37, 133, 0.2); border-color: #f72585; color: #f72585; }
+        .bot-color-8 { background: rgba(255, 140, 0, 0.2); border-color: #ff8c00; color: #ff8c00; }
+        .bot-color-9 { background: rgba(138, 43, 226, 0.2); border-color: #8a2be2; color: #8a2be2; }
+        .bot-color-10 { background: rgba(0, 255, 127, 0.2); border-color: #00ff7f; color: #00ff7f; }
+        .bot-color-11 { background: rgba(255, 20, 147, 0.2); border-color: #ff1493; color: #ff1493; }
+        .bot-color-12 { background: rgba(0, 191, 255, 0.2); border-color: #00bfff; color: #00bfff; }
+        .bot-color-13 { background: rgba(255, 215, 0, 0.2); border-color: #ffd700; color: #ffd700; }
+        .bot-color-14 { background: rgba(50, 205, 50, 0.2); border-color: #32cd32; color: #32cd32; }
+        .bot-color-15 { background: rgba(255, 99, 71, 0.2); border-color: #ff6347; color: #ff6347; }
+        .bot-color-16 { background: rgba(186, 85, 211, 0.2); border-color: #ba55d3; color: #ba55d3; }
+        .bot-color-17 { background: rgba(64, 224, 208, 0.2); border-color: #40e0d0; color: #40e0d0; }
+        .bot-color-18 { background: rgba(255, 165, 0, 0.2); border-color: #ffa500; color: #ffa500; }
+        .bot-color-19 { background: rgba(218, 112, 214, 0.2); border-color: #da70d6; color: #da70d6; }
+        .bot-color-20 { background: rgba(127, 255, 212, 0.2); border-color: #7fffd4; color: #7fffd4; }
+
+        /* Projects Section */
+        .projects-list {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 350px);
+        }
+
+        .projects-title {
+            font-size: 20px;
+            color: #00d9ff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .projects-title::before {
+            content: "📋";
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        .project-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .project-card:hover {
+            background: rgba(0, 217, 255, 0.1);
+            border-color: #00d9ff;
+            transform: translateX(3px);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .project-id {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .project-area-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .project-area-badge.education { background: #9d4edd; color: #fff; }
+        .project-area-badge.relaxation { background: #06ffa5; color: #000; }
+        .project-area-badge.easy-market { background: #4cc9f0; color: #000; }
+        .project-area-badge.hard-market { background: #f72585; color: #fff; }
+
+        .project-body {
+            margin-bottom: 8px;
+        }
+
+        .project-requirements {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .skill-badge {
+            background: rgba(0, 217, 255, 0.2);
+            border: 1px solid #00d9ff;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        .project-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .project-reward {
+            color: #06ffa5;
+            font-weight: bold;
+            margin-left: 12px;
+            font-size: 13px;
+        }
+        .area-project-energy {
+            color: #ffd700;
+            font-weight: bold;
+            margin-left: 12px;
+            font-size: 13px;
+        }
+        .skill-badge {
+            // ...existing code...
+        }
+
+        .project-offers {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .project-offers-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .offer-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .offer-chip {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Sidebar - Leaderboard */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .leaderboard {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .leaderboard-title {
+            font-size: 20px;
+            color: #ffd700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .leaderboard-title::before {
+            content: "🏆";
+            margin-right: 10px;
+            font-size: 24px;
+        }
+
+        .leader-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .leader-item:hover {
+            background: rgba(0, 217, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .leader-rank {
+            font-size: 20px;
+            font-weight: bold;
+            width: 35px;
+            text-align: center;
+        }
+
+        .rank-1 { color: #ffd700; }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+        .rank-other { color: #666; font-size: 14px; }
+
+        .leader-avatar {
+            font-size: 20px;
+            margin-right: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+
+        /* Apply same colors to leaderboard avatars */
+        .leader-avatar.bot-color-1 { border-color: #ff6b6b; background: rgba(255, 107, 107, 0.2); }
+        .leader-avatar.bot-color-2 { border-color: #4ecdc4; background: rgba(78, 205, 196, 0.2); }
+        .leader-avatar.bot-color-3 { border-color: #ffc300; background: rgba(255, 195, 0, 0.2); }
+        .leader-avatar.bot-color-4 { border-color: #9d4edd; background: rgba(157, 78, 221, 0.2); }
+        .leader-avatar.bot-color-5 { border-color: #06ffa5; background: rgba(6, 255, 165, 0.2); }
+        .leader-avatar.bot-color-6 { border-color: #4cc9f0; background: rgba(76, 201, 240, 0.2); }
+        .leader-avatar.bot-color-7 { border-color: #f72585; background: rgba(247, 37, 133, 0.2); }
+        .leader-avatar.bot-color-8 { border-color: #ff8c00; background: rgba(255, 140, 0, 0.2); }
+        .leader-avatar.bot-color-9 { border-color: #8a2be2; background: rgba(138, 43, 226, 0.2); }
+        .leader-avatar.bot-color-10 { border-color: #00ff7f; background: rgba(0, 255, 127, 0.2); }
+        .leader-avatar.bot-color-11 { border-color: #ff1493; background: rgba(255, 20, 147, 0.2); }
+        .leader-avatar.bot-color-12 { border-color: #00bfff; background: rgba(0, 191, 255, 0.2); }
+        .leader-avatar.bot-color-13 { border-color: #ffd700; background: rgba(255, 215, 0, 0.2); }
+        .leader-avatar.bot-color-14 { border-color: #32cd32; background: rgba(50, 205, 50, 0.2); }
+        .leader-avatar.bot-color-15 { border-color: #ff6347; background: rgba(255, 99, 71, 0.2); }
+        .leader-avatar.bot-color-16 { border-color: #ba55d3; background: rgba(186, 85, 211, 0.2); }
+        .leader-avatar.bot-color-17 { border-color: #40e0d0; background: rgba(64, 224, 208, 0.2); }
+        .leader-avatar.bot-color-18 { border-color: #ffa500; background: rgba(255, 165, 0, 0.2); }
+        .leader-avatar.bot-color-19 { border-color: #da70d6; background: rgba(218, 112, 214, 0.2); }
+        .leader-avatar.bot-color-20 { border-color: #7fffd4; background: rgba(127, 255, 212, 0.2); }
+
+        .leader-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .leader-name {
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .leader-stats {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .leader-money {
+            font-size: 16px;
+            font-weight: bold;
+            color: #06ffa5;
+            margin-left: 10px;
+        }
+
+        /* Bottom Bar */
+        .bottom-bar {
+            grid-column: 1 / -1;
+            background: #16213e;
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-info {
+            display: flex;
+            gap: 30px;
+            font-size: 13px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-icon {
+            font-size: 18px;
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .phase-indicator {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .phase-badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .phase-start {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .phase-play {
+            background: #06ffa5;
+            color: #000;
+        }
+
+        .phase-end {
+            background: #f72585;
+            color: #fff;
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        /* Start Phase Overlay */
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 21, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .start-content {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 50px;
+            border-radius: 20px;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 217, 255, 0.4);
+        }
+
+        .start-content h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #00d9ff, #06ffa5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .start-content p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+
+        .start-content code {
+            display: block;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: left;
+            margin: 20px 0;
+            color: #06ffa5;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #06ffa5, #00d9ff);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(6, 255, 165, 0.4);
+        }
+
+        .start-button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reset-button {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: #fff;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+
+        .reset-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 68, 68, 0.4);
+        }
+
+        .bot-count-display {
+            font-size: 24px;
+            color: #00d9ff;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00d9ff;
+            color: #00d9ff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 217, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .control-btn.reset {
+            border-color: #f72585;
+            color: #f72585;
+        }
+
+        .control-btn.reset:hover {
+            background: rgba(247, 37, 133, 0.2);
+        }
+
+        /* Replay Button (Game End Overlay) */
+        #replay-game-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(90deg, #06ffa5, #00d9ff);
+            color: #000;
+            cursor: pointer;
+            margin-top: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px #00d9ff44;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        #replay-game-btn:hover {
+            background: linear-gradient(90deg, #00d9ff, #06ffa5);
+            transform: scale(1.05);
+            color: #222;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 217, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 217, 255, 0.7);
+        }
+
+        /* Event Feed */
+        .event-feed {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .event-feed-title {
+            font-size: 16px;
+            color: #00d9ff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .event-feed-title::before {
+            content: "📜";
+            margin-right: 8px;
+        }
+
+        .event-compact {
+            padding: 5px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            border-left: 3px solid;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .event-compact.move    { border-color: #4cc9f0; }
+        .event-compact.project { border-color: #06ffa5; }
+        .event-compact.study   { border-color: #9d4edd; }
+        .event-compact.rest    { border-color: #06ffa5; }
+        .event-compact.collab  { border-color: #ffd700; }
+        .event-compact.fail    { border-color: #f72585; }
+        .event-compact.invalid { border-color: #888; }
+        .event-compact.chat    { border-color: #00d9ff; }
+
+        .event-time {
+            color: #666;
+            font-size: 10px;
+            margin-right: 6px;
+        }
+
+        .event-bot-name {
+            font-weight: bold;
+            color: #00d9ff;
+        }
+
+        /* === Game End Overlay (from demo) === */
+        .game-end-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 2000;
+            background: rgba(10,10,21,0.97);
+            backdrop-filter: blur(10px);
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .game-end-modal {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 217, 255, 0.4);
+            padding: 48px 32px 32px 32px;
+            min-width: 340px;
+            max-width: 95vw;
+            text-align: center;
+            margin: 40px auto;
+            animation: slideDown 0.8s ease;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .game-end-title {
+            font-size: 54px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+            animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+        .game-end-subtitle {
+            font-size: 22px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .podium-section {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 30px 10px 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .podium {
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .podium-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .podium-avatar {
+            font-size: 70px;
+            margin-bottom: 10px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .place-1 .podium-avatar { font-size: 90px; animation-delay: 0s; }
+        .place-2 .podium-avatar { animation-delay: 0.2s; }
+        .place-3 .podium-avatar { animation-delay: 0.4s; }
+        .podium-medal { font-size: 38px; margin-bottom: 6px; }
+        .podium-name { font-size: 18px; font-weight: bold; margin-bottom: 2px; text-align: center; }
+        .place-1 .podium-name { font-size: 24px; color: #ffd700; }
+        .place-2 .podium-name { color: #c0c0c0; }
+        .place-3 .podium-name { color: #cd7f32; }
+        .podium-money { font-size: 22px; font-weight: bold; color: #06ffa5; margin-bottom: 4px; }
+        .place-1 .podium-money { font-size: 28px; }
+        .podium-stats { font-size: 12px; color: #888; text-align: center; }
+        .podium-base { width: 90px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid; border-radius: 8px 8px 0 0; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .place-1 .podium-base { height: 80px; border-color: #ffd700; box-shadow: 0 0 30px rgba(255, 215, 0, 0.4); }
+        .place-2 .podium-base { height: 60px; border-color: #c0c0c0; box-shadow: 0 0 20px rgba(192, 192, 192, 0.3); }
+        .place-3 .podium-base { height: 40px; border-color: #cd7f32; box-shadow: 0 0 20px rgba(205, 127, 50, 0.3); }
+        .rank-number { font-size: 32px; font-weight: bold; color: #333; opacity: 0.3; }
+        .rankings-section {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 20px 10px 20px 10px;
+            overflow-y: auto;
+            margin-bottom: 30px;
+        }
+        .rankings-title {
+            font-size: 20px;
+            color: #00d9ff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .rankings-title::before { content: "📊"; margin-right: 10px; font-size: 22px; }
+                .rank-item { display: flex; align-items: center; padding: 14px 32px 14px 10px; margin: 12px 0; border-radius: 12px; background: rgba(255,255,255,0.05); border-left: 4px solid transparent; transition: all 0.3s; }
+        .rank-item.rank-1 { border-left-color: #ffd700; background: rgba(255,215,0,0.1); }
+        .rank-item.rank-2 { border-left-color: #c0c0c0; background: rgba(192,192,192,0.1); }
+        .rank-item.rank-3 { border-left-color: #cd7f32; background: rgba(205,127,50,0.1); }
+        .rank-item.eliminated { opacity: 0.4; border-left-color: #f72585; }
+        .rank-position { font-size: 16px; font-weight: bold; width: 32px; text-align: center; }
+        .rank-item.rank-1 .rank-position { color: #ffd700; }
+        .rank-item.rank-2 .rank-position { color: #c0c0c0; }
+        .rank-item.rank-3 .rank-position { color: #cd7f32; }
+        .rank-item:not(.rank-1):not(.rank-2):not(.rank-3):not(.eliminated) .rank-position { color: #666; }
+        .rank-item.eliminated .rank-position { color: #f72585; }
+        .rank-bot-avatar { font-size: 18px; margin-right: 8px; }
+        .rank-bot-info { flex: 1; min-width: 0; }
+        .rank-bot-name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
+        .rank-bot-details { font-size: 10px; color: #888; }
+                .rank-money { font-size: 16px; font-weight: bold; color: #06ffa5; min-width: 60px; text-align: right; padding-right: 16px; margin-left: 16px; }
+        .rank-skills { font-size: 11px; color: #aaa; min-width: 80px; text-align: right; }
+
+        /* Reset Button */
+        #reset-game-btn {
+            font-size: 1.1em;
+            padding: 0.7em 2em;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(90deg, #00d9ff, #06ffa5);
+            color: #000;
+            cursor: pointer;
+            margin-top: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px #00d9ff44;
+            transition: all 0.2s;
+        }
+        #reset-game-btn:hover {
+            background: linear-gradient(90deg, #06ffa5, #00d9ff);
+            transform: scale(1.05);
+        }
+
+        .area-projects {
+            margin-top: 10px;
+            padding: 8px 0 0 0;
+            border-top: 1px solid #222;
+        }
+        .area-project-card {
+            background: #23234a;
+            border-radius: 7px;
+            margin-bottom: 7px;
+            padding: 7px 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 4px #0002;
+        }
+        .area-project-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .project-icon {
+            font-size: 16px;
+            margin-right: 6px;
+        }
+        .project-label {
+            font-weight: bold;
+            color: #ffd700;
+            letter-spacing: 1px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .area-project-requirements {
+            color: #c0c0ff;
+            font-size: 12px;
+        }
+        .area-project-reward {
+            color: #06ffa5;
+            font-weight: bold;
+            margin-left: 12px;
+            font-size: 13px;
+        }
+        .area-project-energy {
+            color: #ffd700;
+            font-weight: bold;
+            margin-left: 12px;
+            font-size: 13px;
+        }
+        .skill-badge {
+            background: #1a1a2a;
+            color: #b3e6ff;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin-right: 4px;
+            font-size: 11px;
+            display: inline-block;
+        }
+
+        /* === Game Summary Section (footer) === */
+        .summary-section {
+            grid-column: 1 / -1;
+            background: #16213e;
+            border-radius: 15px;
+            padding: 25px 40px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            animation: fadeIn 1s ease 0.7s backwards;
+        }
+        .summary-stat {
+            text-align: center;
+        }
+        .summary-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        .summary-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d9ff;
+            margin-bottom: 5px;
+        }
+        .summary-label {
+            font-size: 13px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* Add CSS for course-card and course-icon for clarity */
+        .course-card {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          background: rgba(156, 78, 221, 0.1);
+          border: 1px solid rgba(199, 125, 255, 0.3);
+          border-radius: 6px;
+          padding: 6px 10px;
+          margin-bottom: 6px;
+          font-size: 0.85rem;
+          color: #c77dff;
+        }
+        .course-icon {
+          font-size: 1.2em;
+          margin-right: 6px;
+        }
+        .course-card .area-project-card-header {
+          margin-bottom: 0;
+          margin-right: 8px;
+        }
+        .course-card .project-label {
+          font-size: 11px;
+        }
+        .course-card .area-project-requirements {
+          flex: 1;
+        }
+
+        /* Relaxation card styling */
+        .relaxation-card {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          background: rgba(6, 255, 165, 0.1);
+          border: 1px solid rgba(6, 255, 165, 0.3);
+          border-radius: 6px;
+          padding: 6px 10px;
+          margin-bottom: 6px;
+          font-size: 0.85rem;
+          color: #06ffa5;
+        }
+        .relaxation-card .area-project-card-header {
+          margin-bottom: 0;
+          margin-right: 8px;
+        }
+        .relaxation-card .project-label {
+          font-size: 11px;
+          color: #06ffa5;
+        }
+        .relaxation-card .area-project-energy {
+          margin-left: auto;
+        }
+
+        /* Activity icon styles */
+        .relax-activity-icon {
+            font-size: 1.2em;
+            margin-right: 2px;
+            vertical-align: middle;
+        }
+        .relax-activity {
+            font-weight: bold;
+            color: #ffd700;
+            margin-right: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="radiator-container">
+        <!-- Game End Overlay (hidden by default, improved design) -->
+        <div id="game-end-overlay" class="game-end-overlay">
+          <div class="game-end-modal">
+            <div class="game-end-title">🏆 GAME OVER 🏆</div>
+            <div class="game-end-subtitle" id="game-end-subtitle"></div>
+            <div class="podium-section" id="game-end-podium"></div>
+            <div class="rankings-section">
+              <div class="rankings-title">Final Standings</div>
+              <div id="game-end-standings"></div>
+            </div>
+            <button id="replay-game-btn">Replay</button>
+          </div>
+        </div>
+        <!-- Start Phase Overlay -->
+        <div class="start-overlay" id="start-overlay" style="display: none;">
+            <div class="start-content">
+                <h2>🎮 Game of Consults</h2>
+                <p>Register your bots to compete!</p>
+
+                <div class="bot-count-display">
+                    <span id="start-bot-count">0</span> bot(s) registered
+                </div>
+                <div id="start-bot-list" class="mini-bots" style="justify-content:center;"></div>
+
+                <p>Register a bot using:</p>
+                <code>curl -X POST "http://localhost:3000/register-bot?name=MyBot" \<br>  --data-binary @bots/sample-bot.scm</code>
+
+                <p style="margin-top: 20px; font-size: 16px;">See example bots in the <strong>bots/</strong> folder</p>
+
+                <button class="start-button" id="start-game-btn" onclick="startGame()">
+                    ▶️ Start Game
+                </button>
+                <p style="font-size: 14px; color: #666; margin-top: 10px;">
+                    (Requires at least 1 bot)
+                </p>
+
+                <button class="reset-button" id="reset-game-btn" onclick="resetGame()">
+                    🔄 Reset Game & Remove All Bots
+                </button>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                    (Clears all bots and resets the game)
+                </p>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="game-title">🎮 GAME OF CONSULTS</div>
+            <div class="game-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Round</div>
+                    <div class="stat-value" id="round-display">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Bots</div>
+                    <div class="stat-value" id="bots-count">-</div>
+                </div>
+            </div>
+            <!-- Removed Reset Game button from header -->
+        </div>
+
+        <!-- Main Content: Map + Projects -->
+        <div class="main-content">
+            <!-- Map Grid -->
+            <div class="map-grid">
+                <div class="area education" id="area-education">
+                    <div class="area-header">
+                        <div class="area-icon">📚</div>
+                        <div class="area-title">EDUCATION</div>
+                    </div>
+                    <div class="bot-count" id="education-count">0</div>
+                    <div class="mini-bots" id="education-bots"></div>
+                </div>
+                <div class="area relaxation" id="area-relaxation">
+                    <div class="area-header">
+                        <div class="area-icon">🌴</div>
+                        <div class="area-title">RELAXATION</div>
+                    </div>
+                    <div class="bot-count" id="relaxation-count">0</div>
+                    <div class="mini-bots" id="relaxation-bots"></div>
+                </div>
+                <div class="area easy-market" id="area-easy-market">
+                    <div class="area-header">
+                        <div class="area-icon">💼</div>
+                        <div class="area-title">EASY MARKET</div>
+                    </div>
+                    <div class="bot-count" id="easy-market-count">0</div>
+                    <div class="mini-bots" id="easy-market-bots"></div>
+                </div>
+                <div class="area hard-market" id="area-hard-market">
+                    <div class="area-header">
+                        <div class="area-icon">🏢</div>
+                        <div class="area-title">HARD MARKET</div>
+                    </div>
+                    <div class="bot-count" id="hard-market-count">0</div>
+                    <div class="mini-bots" id="hard-market-bots"></div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Feed is already below map grid -->
+            <div class="event-feed" id="event-feed">
+                <div class="event-feed-title">Recent Activity</div>
+                <!-- Events will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Sidebar: Leaderboard only -->
+        <div class="sidebar">
+            <div class="leaderboard">
+                <div class="leaderboard-title">Leaderboard</div>
+                <div id="leaderboard-list">
+                    <!-- Leaderboard items will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="bottom-bar">
+            <div class="status-info">
+                <div class="status-item">
+                    <span class="status-icon pulse" id="game-status-icon">🟢</span>
+                    <span id="game-status-text">Waiting for Game</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">⏱️</span>
+                    <span id="next-turn-timer">Next Turn: -</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">💰</span>
+                    <span id="total-money-display">Total Money in Play: $0</span>
+                </div>
+            </div>
+            <div style="color: #666; font-size: 12px;">
+                Game of Consults | Round <span id="round-display-footer">0</span>/<span id="max-rounds-display">50</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Summary Footer -->
+    <div class="summary-section" id="summary-section">
+        <div class="summary-stat">
+            <div class="summary-icon">🎮</div>
+            <div class="summary-value" id="summary-total-rounds">-</div>
+            <div class="summary-label">Total Rounds</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">💼</div>
+            <div class="summary-value" id="summary-projects-completed">-</div>
+            <div class="summary-label">Projects Completed</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">🤝</div>
+            <div class="summary-value" id="summary-collaborations">-</div>
+            <div class="summary-label">Collaborations</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">💰</div>
+            <div class="summary-value" id="summary-total-money">-</div>
+            <div class="summary-label">Total Money Earned</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">📚</div>
+            <div class="summary-value" id="summary-courses-taken">-</div>
+            <div class="summary-label">Courses Taken</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">☠️</div>
+            <div class="summary-value" id="summary-bots-eliminated">-</div>
+            <div class="summary-label">Bots Eliminated</div>
+        </div>
+        <div class="summary-stat">
+            <div class="summary-icon">⏱️</div>
+            <div class="summary-value" id="summary-game-duration">-</div>
+            <div class="summary-label">Game Duration</div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Map relaxation activities to icons
+        const RELAXATION_ACTIVITY_ICONS = {
+            'beer': '🍺',
+            'music': '🎵',
+            'dancing': '💃',
+            'karaoke': '🎤',
+            'board games': '🎲',
+            'yoga': '🧘',
+            'meditation': '🧘‍♂️',
+            'table tennis': '🏓',
+            'coffee': '☕',
+            'chilling with friends': '🧑‍🤝‍🧑',
+        };
+
+        // Helper to highlight activity with icon for rest events
+        function formatRestEvent(detail) {
+            // Example: "BotName enjoyed beer → +20 energy"
+            const match = detail.match(/enjoyed ([^→]+) → \+([0-9]+) energy/);
+            if (match) {
+                const activity = match[1].trim();
+                const icon = RELAXATION_ACTIVITY_ICONS[activity] || '🎉';
+                // Highlight activity name and show icon
+                return detail.replace(
+                    activity,
+                    `<span class="relax-activity-icon">${icon}</span> <span class="relax-activity">${activity}</span>`
+                );
+            }
+            return detail;
+        }
+        const socket = io();
+        const gameEndOverlay = document.getElementById('game-end-overlay');
+        const gameEndWinner = document.getElementById('game-end-winner');
+        const gameEndStandings = document.getElementById('game-end-standings');
+        const replayGameBtn = document.getElementById('replay-game-btn');
+        let lastPhase = null;
+        let currentState = null;
+        let timerInterval = null;
+        const botColors = {};
+        let nextColorIndex = 1;
+        const knownBotNames = new Set();
+
+        // Assign a consistent color to each bot
+        function getBotColor(botId) {
+            if (!botColors[botId]) {
+                botColors[botId] = nextColorIndex;
+                nextColorIndex = (nextColorIndex % 20) + 1;
+            }
+            return `bot-color-${botColors[botId]}`;
+        }
+
+        // Update timer display
+        function updateTimer() {
+            if (!currentState || !currentState.phaseEndsAt) {
+                document.getElementById('next-turn-timer').textContent = 'Next Turn: -';
+                return;
+            }
+            const ms = Math.max(0, currentState.phaseEndsAt - Date.now());
+            const seconds = Math.ceil(ms / 1000);
+            document.getElementById('next-turn-timer').textContent = `Next Turn: ${seconds}s`;
+        }
+
+        // Render game info header
+        function renderHeader(state) {
+            document.getElementById('round-display').textContent = `${state.round}/${state.maxRounds}`;
+            document.getElementById('bots-count').textContent = state.bots.length;
+
+            // Update bottom-bar status
+            const gameStatusIcon = document.getElementById('game-status-icon');
+            const gameStatusText = document.getElementById('game-status-text');
+
+            if (state.phase === 'end') {
+                gameStatusIcon.textContent = '🏁';
+                gameStatusIcon.classList.remove('pulse');
+                gameStatusText.textContent = 'Game Ended';
+            } else if (state.phase === 'play') {
+                gameStatusIcon.textContent = '🟢';
+                gameStatusIcon.classList.add('pulse');
+                gameStatusText.textContent = 'Game Running';
+            } else {
+                gameStatusIcon.textContent = '🟡';
+                gameStatusIcon.classList.remove('pulse');
+                gameStatusText.textContent = 'Game Starting';
+            }
+
+            // Calculate total money in play
+            const totalMoney = state.bots.reduce((sum, bot) => sum + (bot.money || 0), 0);
+            document.getElementById('total-money-display').textContent = `Total Money in Play: $${totalMoney.toLocaleString()}`;
+
+            // Update round display in footer
+            document.getElementById('round-display-footer').textContent = state.round;
+            document.getElementById('max-rounds-display').textContent = state.maxRounds;
+
+
+            updateTimer();
+        }
+
+        // Render bot chip (main game view)
+        function renderBotChip(bot) {
+            const colorClass = getBotColor(bot.id);
+            const skillsText = Object.entries(bot.skills || {})
+                .map(([skill, level]) => `${skill}:${level}`)
+                .join(', ') || 'None';
+            return `
+                <div class="bot-chip ${colorClass}" title="${bot.name}: 💰${bot.money} ⚡${bot.energy} | Skills: ${skillsText}">
+                    <span class="bot-chip-icon">🤖</span>
+                    <span class="bot-chip-name">${bot.name}</span>
+                </div>
+            `;
+        }
+
+        // Render bot chip with remove button (for start overlay)
+        function renderRemovableBotChip(bot) {
+            const colorClass = getBotColor(bot.id);
+            const skillsText = Object.entries(bot.skills || {})
+                .map(([skill, level]) => `${skill}:${level}`)
+                .join(', ') || 'None';
+            // Flex layout: icon, name, X button at end
+            return `
+                <div class="bot-chip ${colorClass}" title="${bot.name}: 💰${bot.money} ⚡${bot.energy} | Skills: ${skillsText}" style="display:flex;align-items:center;gap:4px;min-width:0;">
+                    <span class="bot-chip-icon">🤖</span>
+                    <span class="bot-chip-name" style="flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${bot.name}</span>
+                    <button class="remove-bot-btn" data-bot-name="${encodeURIComponent(bot.name)}" title="Remove bot" style="margin-left:6px;background:transparent;border:none;color:#ff6b6b;font-size:16px;font-weight:bold;cursor:pointer;line-height:1;">×</button>
+                </div>
+            `;
+        }
+
+        // Render bots and projects by area
+        function renderBotsAndProjectsByArea(state) {
+            const areas = ['education', 'relaxation', 'easy-market', 'hard-market'];
+            areas.forEach(area => {
+                const botsInArea = state.bots.filter(bot => bot.area === area);
+                const countEl = document.getElementById(`${area}-count`);
+                const botsEl = document.getElementById(`${area}-bots`);
+
+                countEl.textContent = botsInArea.length;
+                botsEl.innerHTML = botsInArea.map(bot => renderBotChip(bot)).join('');
+
+                // Render projects/courses for this area
+                let areaDiv = document.getElementById(`area-${area}`);
+                let oldProjects = areaDiv.querySelector('.area-projects');
+                if (oldProjects) oldProjects.remove();
+
+                if (area === 'education') {
+                    // Display courses in education area
+                    const courses = state.courses || [];
+                    if (courses.length > 0) {
+                        const coursesHtml = `<div class="area-projects">` +
+                            courses.map(course => {
+                                const skillsHtml = Object.entries(course.skillsGained || {})
+                                    .map(([skill, level]) => `<span class="skill-badge">${skill}: +${level}</span>`)
+                                    .join(' ');
+                                return `<div class="area-project-card course-card">
+                                    <div class="area-project-card-header">
+                                        <span class="course-icon" title="Course">🎓</span>
+                                        <span class="project-label">${course.name}</span>
+                                    </div>
+                                    <div class="area-project-requirements">${skillsHtml}</div>
+                                    <div class="area-project-energy">⚡ ${course.energyCost}</div>
+                                </div>`;
+                            }).join('') +
+                            `</div>`;
+                        botsEl.insertAdjacentHTML('afterend', coursesHtml);
+                    }
+                } else if (area === 'relaxation') {
+                    // Display available relaxation activities
+                    const activities = [
+                        {icon: '🍺', name: 'Beer', energy: '10-30'},
+                        {icon: '🎵', name: 'Music', energy: '10-30'},
+                        {icon: '💃', name: 'Dancing', energy: '10-30'},
+                        {icon: '🎤', name: 'Karaoke', energy: '10-30'},
+                        {icon: '🎲', name: 'Board Games', energy: '10-30'},
+                        {icon: '🧘', name: 'Yoga', energy: '10-30'},
+                        {icon: '🏓', name: 'Table Tennis', energy: '10-30'},
+                        {icon: '☕', name: 'Coffee', energy: '10-30'}
+                    ];
+                    const activitiesHtml = `<div class="area-projects">` +
+                        activities.map(activity => {
+                            return `<div class="area-project-card relaxation-card">
+                                <div class="area-project-card-header">
+                                    <span class="course-icon" title="Activity">${activity.icon}</span>
+                                    <span class="project-label">${activity.name}</span>
+                                </div>
+                                <div class="area-project-energy" style="color: #06ffa5;">⚡ +${activity.energy}</div>
+                            </div>`;
+                        }).join('') +
+                        `</div>`;
+                    botsEl.insertAdjacentHTML('afterend', activitiesHtml);
+                } else if (area !== 'relaxation') {
+                    // Display projects in market areas
+                    const projectsInArea = (state.projects || []).filter(p => p.area === area);
+                    if (projectsInArea.length > 0) {
+                        const projectsHtml = `<div class="area-projects">` +
+                            projectsInArea.map(project => {
+                                const requirementsHtml = Object.entries(project.requiredSkills || {})
+                                    .map(([skill, level]) => `<span class="skill-badge">${skill}: ${level}</span>`)
+                                    .join(' ');
+                                return `<div class="area-project-card">
+                                    <div class="area-project-card-header">
+                                        <span class="project-icon" title="Project">🗂️</span>
+                                        <span class="project-label">Project</span>
+                                    </div>
+                                    <div class="area-project-requirements">${requirementsHtml}</div>
+                                    <div class="area-project-reward">💰 ${project.reward}</div>
+                                </div>`;
+                            }).join('') +
+                            `</div>`;
+                        botsEl.insertAdjacentHTML('afterend', projectsHtml);
+                    }
+                }
+            });
+        }
+
+
+
+        // Render leaderboard
+        function renderLeaderboard(state) {
+            const container = document.getElementById('leaderboard-list');
+            const sortedBots = [...state.bots].sort((a, b) => b.money - a.money);
+
+            if (sortedBots.length === 0) {
+                container.innerHTML = '<div style="color: #666; text-align: center;">No bots yet</div>';
+                return;
+            }
+
+            container.innerHTML = sortedBots.map((bot, index) => {
+                const rank = index + 1;
+                const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+                const colorClass = getBotColor(bot.id);
+                const skillsText = Object.entries(bot.skills || {})
+                    .map(([skill, level]) => `${skill}:${level}`)
+                    .join(', ') || 'None';
+
+                return `
+                    <div class="leader-item">
+                        <div class="leader-rank ${rankClass}">#${rank}</div>
+                        <div class="leader-avatar ${colorClass}">🤖</div>
+                        <div class="leader-details">
+                            <div class="leader-name">${bot.name}</div>
+                            <div class="leader-stats">⚡${bot.energy} | ${skillsText}</div>
+                        </div>
+                        <div class="leader-money">💰${bot.money}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+
+        function highlightBotNames(detail) {
+            let result = detail;
+            for (const name of knownBotNames) {
+                result = result.split(name).join(`<span class="event-bot-name">${name}</span>`);
+            }
+            return result;
+        }
+
+        function renderEventFeed(state) {
+            const feed = document.getElementById('event-feed');
+            if (!feed) return;
+            // Keep track of all seen bot names (including eliminated)
+            for (const bot of (state.bots || [])) knownBotNames.add(bot.name);
+            for (const ev of (state.recentEvents || [])) knownBotNames.add(ev.botName);
+
+            const events = (state.recentEvents || []).slice().reverse();
+            feed.innerHTML = `<div class="event-feed-title">Recent Activity</div>` + (
+                events.length === 0
+                    ? `<div style="color:#666;padding:10px;font-size:12px;">No activity yet...</div>`
+                    : events.map(ev => {
+                        let detail = highlightBotNames(ev.detail);
+                        if (ev.type === 'rest') {
+                            detail = formatRestEvent(detail);
+                        }
+                        return `<div class="event-compact ${ev.type}"><span class="event-time">R${ev.round}</span> ${detail}</div>`;
+                    }).join('')
+            );
+        }
+
+
+        // Render entire game state
+        function renderGameState(state) {
+            currentState = state;
+            renderHeader(state);
+            renderBotsAndProjectsByArea(state);
+            renderLeaderboard(state);
+            renderEventFeed(state);
+
+            // Update summary-section footer
+            updateSummarySection(state);
+
+            // Show/hide start overlay
+            const overlay = document.getElementById('start-overlay');
+            const startBtn = document.getElementById('start-game-btn');
+            const startBotCount = document.getElementById('start-bot-count');
+
+            if (state.phase === 'start') {
+                overlay.style.display = 'flex';
+                startBotCount.textContent = state.bots.length;
+                startBtn.disabled = state.bots.length === 0;
+                // Render removable bot chips in the start overlay
+                const startBotList = document.getElementById('start-bot-list');
+                if (startBotList) {
+                    startBotList.innerHTML = state.bots.map(bot => renderRemovableBotChip(bot)).join('');
+                }
+            } else {
+                overlay.style.display = 'none';
+                // Clear bot list when not in start phase
+                const startBotList = document.getElementById('start-bot-list');
+                if (startBotList) startBotList.innerHTML = '';
+            }
+
+            // Attach remove button event listeners (event delegation)
+            const startBotList = document.getElementById('start-bot-list');
+            if (startBotList) {
+                startBotList.onclick = function(e) {
+                    const btn = e.target.closest('.remove-bot-btn');
+                    if (btn) {
+                        const botName = decodeURIComponent(btn.getAttribute('data-bot-name'));
+                        removeBot(botName);
+                        e.stopPropagation();
+                    }
+                };
+            }
+                        // Remove bot by name (for start overlay)
+                        async function removeBot(name) {
+                            if (!name) return;
+                            if (!confirm(`Remove bot "${name}"?`)) return;
+                            try {
+                                const resp = await fetch(`/remove-bot?name=${encodeURIComponent(name)}`, { method: 'POST' });
+                                const result = await resp.json();
+                                if (!resp.ok) {
+                                    alert(result.error || 'Failed to remove bot');
+                                }
+                                // UI will update via socket event
+                            } catch (e) {
+                                alert('Error removing bot: ' + e.message);
+                            }
+                        }
+        }
+
+        // Start game function
+        async function startGame() {
+            try {
+                const response = await fetch('/start-game', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'Failed to start game');
+                }
+            } catch (e) {
+                alert('Error starting game: ' + e.message);
+            }
+        }
+
+        // Reset game function - clears all bots and resets game state
+        async function resetGame() {
+            if (!confirm('Are you sure you want to reset the game and remove all bots?')) {
+                return;
+            }
+            try {
+                const response = await fetch('/reset-game', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'Failed to reset game');
+                } else {
+                    // Game state will be updated via socket.io automatically
+                    console.log('Game reset successfully');
+                }
+            } catch (e) {
+                alert('Error resetting game: ' + e.message);
+            }
+        }
+
+
+        // Replay game function (calls /replay-game)
+        async function replayGame() {
+            try {
+                const response = await fetch('/replay-game', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'Failed to replay game');
+                }
+            } catch (e) {
+                alert('Error replaying game: ' + e.message);
+            }
+        }
+
+        // Render the improved Game End overlay (podium, subtitle, standings)
+        function renderGameEndOverlay(state) {
+            // Show overlay
+            gameEndOverlay.style.display = 'flex';
+            const subtitle = document.getElementById('game-end-subtitle');
+            const podium = document.getElementById('game-end-podium');
+            const standings = document.getElementById('game-end-standings');
+            // Defensive: clear previous content
+            subtitle.textContent = '';
+            podium.innerHTML = '';
+            standings.innerHTML = '';
+
+            if (state.bots && state.bots.length > 0) {
+                // Sort bots by money descending
+                const sorted = [...state.bots].sort((a, b) => b.money - a.money);
+                // Subtitle: winner or tie
+                const topMoney = sorted[0].money;
+                const winners = sorted.filter(bot => bot.money === topMoney);
+                if (winners.length === 1) {
+                    subtitle.innerHTML = `Congratulations, <b>${winners[0].name}</b> wins!`;
+                } else {
+                    subtitle.innerHTML = `It's a tie! Winners: <b>${winners.map(b => b.name).join(', ')}</b>`;
+                }
+
+                // Podium: top 3
+                const medals = ['🥇', '🥈', '🥉'];
+                const podiumBots = sorted.slice(0, 3);
+                podium.innerHTML = `
+                  <div style="display:flex;justify-content:center;align-items:flex-end;gap:32px;margin:32px 0 24px 0;">
+                    ${podiumBots.map((bot, i) => {
+                        // Podium height: 1st tallest, 2nd/3rd shorter
+                        const heights = [120, 80, 80];
+                        const idx = i;
+                        const colorClass = getBotColor(bot.id);
+                        return `
+                          <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="font-size:32px;">${medals[idx]}</div>
+                            <div class="bot-chip ${colorClass}" style="font-size:15px;margin:6px 0 4px 0;">${bot.name}</div>
+                            <div style="background:linear-gradient(180deg,#00d9ff,#06ffa5);width:48px;height:${heights[idx]}px;border-radius:12px 12px 0 0;display:flex;align-items:flex-end;justify-content:center;box-shadow:0 4px 16px #00d9ff44;">
+                              <span style="font-size:16px;font-weight:bold;color:#000;">$${bot.money}</span>
+                            </div>
+                          </div>
+                        `;
+                    }).join('')}
+                  </div>
+                `;
+
+                // Standings: all bots
+                standings.innerHTML = `
+                  <div style="max-width:420px;margin:0 auto;">
+                    ${sorted.map((bot, i) => {
+                        const rank = i + 1;
+                        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                        const colorClass = getBotColor(bot.id);
+                        const skillsText = Object.entries(bot.skills || {})
+                            .map(([skill, level]) => `${skill}:${level}`)
+                            .join(', ') || 'None';
+                        const medal = rank <= 3 ? medals[rank - 1] : '';
+                        return `
+                          <div class="rank-item ${rankClass}" style="display:flex;align-items:center;padding:8px 0;border-left:6px solid #222;margin-bottom:2px;">
+                            <div class="rank-position ${rankClass}" style="width:32px;text-align:center;">${medal || rank}</div>
+                            <div class="rank-bot-avatar ${colorClass}" style="font-size:18px;margin-right:8px;">🤖</div>
+                            <div class="rank-bot-info" style="flex:1;min-width:0;">
+                              <div class="rank-bot-name">${bot.name}</div>
+                              <div class="rank-bot-details">⚡${bot.energy} | ${skillsText}</div>
+                            </div>
+                            <div class="rank-money" style="font-size:14px;font-weight:bold;color:#06ffa5;min-width:60px;text-align:right;">$${bot.money}</div>
+                          </div>
+                        `;
+                    }).join('')}
+                  </div>
+                `;
+            } else {
+                subtitle.textContent = 'No bots played.';
+                podium.innerHTML = '';
+                standings.innerHTML = '';
+            }
+        }
+
+        // Show/hide game end overlay based on phase
+        function handlePhase(state) {
+            if (state.phase === 'end') {
+                renderGameEndOverlay(state);
+            } else {
+                gameEndOverlay.style.display = 'none';
+            }
+            lastPhase = state.phase;
+        }
+
+        // Update the summary-section footer with live stats
+        function updateSummarySection(state) {
+            // Defensive: check for element existence
+            const get = id => document.getElementById(id);
+            // Total Rounds
+            if (get('summary-total-rounds'))
+                get('summary-total-rounds').textContent = state.maxRounds || '-';
+            // Projects Completed
+            if (get('summary-projects-completed'))
+                get('summary-projects-completed').textContent = state.stats?.projectsCompleted ?? '-';
+            // Collaborations
+            if (get('summary-collaborations'))
+                get('summary-collaborations').textContent = state.stats?.collaborations ?? '-';
+            // Total Money Earned
+            if (get('summary-total-money'))
+                get('summary-total-money').textContent = state.stats?.totalMoney ? `$${state.stats.totalMoney}` : '-';
+            // Courses Taken
+            if (get('summary-courses-taken'))
+                get('summary-courses-taken').textContent = state.stats?.coursesTaken ?? '-';
+            // Bots Eliminated
+            if (get('summary-bots-eliminated'))
+                get('summary-bots-eliminated').textContent = state.stats?.botsEliminated ?? '-';
+            // Game Duration
+            if (get('summary-game-duration'))
+                get('summary-game-duration').textContent = state.stats?.gameDuration ?? '-';
+        }
+
+        // Socket.io event handlers
+        socket.on('gameState', (state) => {
+            renderGameState(state);
+            handlePhase(state);
+        });
+
+        socket.on('gameOver', (state) => {
+            renderGameState(state);
+            handlePhase(state);
+        });
+
+        // Replay button handler
+        replayGameBtn.addEventListener('click', async () => {
+            replayGameBtn.disabled = true;
+            replayGameBtn.textContent = 'Replaying...';
+            try {
+                const resp = await fetch('/replay-game', { method: 'POST' });
+                if (resp.ok) {
+                    // Wait for phase to change to 'start' via socket
+                } else {
+                    alert('Failed to replay game');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                replayGameBtn.disabled = false;
+                replayGameBtn.textContent = 'Replay';
+            }
+        });
+
+        // Update timer every second
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>
+
+
+
