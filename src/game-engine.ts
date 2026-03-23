@@ -285,7 +285,7 @@ export class GameEngine {
                 const course = this.state.courses.find(c => c.id === action.courseId);
                 if (!course) {
                     // Invalid course: report invalid move and penalize energy
-                    const reason = `Tried to study invalid course: '${action.courseId}'`;
+                    const reason = `${bot.name} tried to study invalid course: '${action.courseId}'`;
                     this.addEvent('invalid', bot.name, reason);
                     bot.energy = Math.max(0, bot.energy - INVALID_MOVE_ENERGY_PENALTY);
                     break;

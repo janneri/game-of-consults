@@ -2,10 +2,73 @@ import {Interpreter} from 'biwascheme';
 import {GameState, BotAction} from './types';
 
 export class BotInterpreter {
+    // Dangerous function patterns (regex to match actual function calls)
+    // Order matters - more specific patterns first
+    private readonly DANGEROUS_PATTERNS = [
+        { pattern: /\bchild_process\b/, name: 'child_process' },
+        { pattern: /\brequire\s*\(/, name: 'require' },
+        { pattern: /\bimport\s+/, name: 'import' },
+        { pattern: /\bprocess\./, name: 'process.' },
+        { pattern: /\b__dirname\b/, name: '__dirname' },
+        { pattern: /\b__filename\b/, name: '__filename' },
+        { pattern: /\bBuffer\b/, name: 'Buffer' },
+        { pattern: /\bglobal\./, name: 'global.' },
+        { pattern: /\bfetch\b/, name: 'fetch' },
+        { pattern: /\bXMLHttpRequest\b/, name: 'XMLHttpRequest' },
+        { pattern: /\bhttp\b/, name: 'http' },
+        { pattern: /\bhttps\b/, name: 'https' },
+        { pattern: /\bnet\./, name: 'net.' },
+        { pattern: /\bfs\./, name: 'fs.' },
+        { pattern: /\breadFile/, name: 'readFile' },
+        { pattern: /\bwriteFile/, name: 'writeFile' },
+        { pattern: /\bunlink/, name: 'unlink' },
+        { pattern: /\bFunction\s*\(/, name: 'Function' },
+        { pattern: /\beval\s*\(/, name: 'eval' },
+        { pattern: /\bsetTimeout\b/, name: 'setTimeout' },
+        { pattern: /\bsetInterval\b/, name: 'setInterval' },
+        // BiwaScheme JavaScript interop - check these last
+        { pattern: /\(js-eval\b/, name: 'js-eval' },
+        { pattern: /\(js-load\b/, name: 'js-load' },
+        { pattern: /\(js-invoke\b/, name: 'js-invoke' },
+        { pattern: /\(js-call\b/, name: 'js-call' },
+        { pattern: /\(js-new\b/, name: 'js-new' },
+        { pattern: /\(load\b/, name: 'load' },
+    ];
+
+    // Validate bot code for dangerous patterns
+    private validateBotCode(code: string): { valid: boolean; reason?: string } {
+        // Check for dangerous patterns using regex
+        for (const { pattern, name } of this.DANGEROUS_PATTERNS) {
+            if (pattern.test(code)) {
+                return {
+                    valid: false,
+                    reason: `Forbidden function/pattern detected: ${name}. Bot code cannot access JavaScript or system functions.`
+                };
+            }
+        }
+        return { valid: true };
+    }
+
     // Helper functions code to inject into the environment
     private getHelperFunctions(): string {
         return `
 ;; Built-in helper functions provided by the game server
+
+;; Security: Override dangerous BiwaScheme functions
+(define (js-eval . args)
+  (error "js-eval is disabled for security reasons"))
+
+(define (js-load . args)
+  (error "js-load is disabled for security reasons"))
+
+(define (js-invoke . args)
+  (error "js-invoke is disabled for security reasons"))
+
+(define (js-call . args)
+  (error "js-call is disabled for security reasons"))
+
+(define (js-new . args)
+  (error "js-new is disabled for security reasons"))
 
 ;; Player Access Functions
 (define (self state)
@@ -188,6 +251,12 @@ export class BotInterpreter {
 
     // Run bot code with the game state and built-in helpers
     async run(code: string, state: GameState, botNameOrId?: string): Promise<BotAction> {
+        // Validate bot code first
+        const validation = this.validateBotCode(code);
+        if (!validation.valid) {
+            return { type: 'invalid', reason: validation.reason || 'Invalid bot code' };
+        }
+
         try {
             const interpreter = new Interpreter();
             // console.log('[BotInterpreter] Created interpreter');

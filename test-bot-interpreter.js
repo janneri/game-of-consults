@@ -16,7 +16,6 @@ const glob = require('glob');
         skills: { python: 2 },
         area: 'education',
         offers: [],
-        isSelf: true,
       },
     ],
     projects: [
@@ -48,6 +47,7 @@ const glob = require('glob');
     maxRounds: 50,
     phase: 'play',
     recentEvents: [],
+    currentBotName: 'Test',
   };
 
   // If a filename is given, test only that file
