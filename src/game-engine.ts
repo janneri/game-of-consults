@@ -6,25 +6,32 @@ import {
     AREAS,
     COURSES,
     INVALID_MOVE_ENERGY_PENALTY,
-    REST_ENERGY_GAIN,
-    STUDY_ENERGY_COST,
     MOVE_ENERGY_COST,
     PROJECT_FAIL_ENERGY_COST,
     PROJECT_SUCCESS_ENERGY_COST,
     INITIAL_BOT_MONEY,
     INITIAL_BOT_ENERGY,
     RELAXATION_ACTIVITIES,
-    RELAXATION_ENERGY_RANGE
+    RELAXATION_ENERGY_RANGE,
+    COURSES_PER_GAME,
+    EASY_MARKET_INITIAL_PROJECTS_MIN,
+    EASY_MARKET_INITIAL_PROJECTS_MAX,
+    HARD_MARKET_INITIAL_PROJECTS_MIN,
+    HARD_MARKET_INITIAL_PROJECTS_MAX,
+    EASY_MARKET_MIN_PROJECTS,
+    HARD_MARKET_MIN_PROJECTS,
+    PLAY_ROUNDS_DEFAULT,
+    ROUND_DELAY_MS_DEFAULT
 } from './constants';
 
 export class GameEngine {
     private state: GameState;
-    private roundDelayMs = 2000; // delay between rounds
+    private roundDelayMs = ROUND_DELAY_MS_DEFAULT; // delay between rounds
     private onStateChange: (() => void) | null = null;
     private onGameEnd: (() => void) | null = null;
     private running = false;
     private phaseTimeout: NodeJS.Timeout | null = null;
-    private playRounds = 20;
+    private playRounds = PLAY_ROUNDS_DEFAULT;
     private defaultAreas = AREAS;
     private botInterpreter: BotInterpreter;
 
@@ -35,16 +42,23 @@ export class GameEngine {
     }
 
     private createInitialState(): GameState {
+        // Limit courses if configured
+        let coursesToUse = COURSES;
+        if (COURSES_PER_GAME > 0 && COURSES_PER_GAME < COURSES.length) {
+            // Shuffle and pick a subset
+            coursesToUse = this.shuffle(COURSES).slice(0, COURSES_PER_GAME);
+        }
         return {
             round: 1,
             bots: [],
             projects: [],
-            courses: [...COURSES],
+            courses: [...coursesToUse],
             areas: [...this.defaultAreas],
             maxRounds: this.playRounds, // Use playRounds for maxRounds
             phase: 'start',
             phaseEndsAt: undefined,
             recentEvents: [], // Initialize recentEvents
+            currentBotName: undefined,
         };
     }
 
@@ -208,13 +222,10 @@ export class GameEngine {
     private async executeBotMoves() {
         for (const bot of this.state.bots) {
             try {
-                // Mark this bot as self in the state
+                // Mark the current bot by name in the state
                 const stateForBot: GameState = {
                     ...this.state,
-                    bots: this.state.bots.map(b => ({
-                        ...b,
-                        isSelf: b.id === bot.id
-                    }))
+                    currentBotName: bot.name
                 };
 
                 // Execute bot code
@@ -408,11 +419,16 @@ export class GameEngine {
     }
 
     private generateInitialProjects() {
-        // Generate 3-5 projects per area at the start of play phase
+        // Generate configurable number of projects per area at the start of play phase
         const areas = ['education', 'easy-market', 'hard-market'];
         const skills = SKILLS;
         areas.forEach(area => {
-            const numProjects = 3 + Math.floor(Math.random() * 3); // 3-5 projects
+            let numProjects = 3;
+            if (area === 'easy-market') {
+                numProjects = EASY_MARKET_INITIAL_PROJECTS_MIN + Math.floor(Math.random() * (EASY_MARKET_INITIAL_PROJECTS_MAX - EASY_MARKET_INITIAL_PROJECTS_MIN + 1));
+            } else if (area === 'hard-market') {
+                numProjects = HARD_MARKET_INITIAL_PROJECTS_MIN + Math.floor(Math.random() * (HARD_MARKET_INITIAL_PROJECTS_MAX - HARD_MARKET_INITIAL_PROJECTS_MIN + 1));
+            }
             for (let i = 0; i < numProjects; i++) {
                 this.state.projects.push(this.generateProject(area, skills));
             }
@@ -446,12 +462,18 @@ export class GameEngine {
     }
 
     private maybeSpawnNewProjects() {
-        // Maintain at least 2 projects per area
+        // Maintain at least N projects per area (configurable)
         const areas = ['education', 'easy-market', 'hard-market'];
         const skills = SKILLS;
         areas.forEach(area => {
             const projectsInArea = this.state.projects.filter(p => p.area === area).length;
-            if (projectsInArea < 2 && Math.random() < 0.5) {
+            let minProjects = 2;
+            if (area === 'easy-market') {
+                minProjects = EASY_MARKET_MIN_PROJECTS;
+            } else if (area === 'hard-market') {
+                minProjects = HARD_MARKET_MIN_PROJECTS;
+            }
+            if (projectsInArea < minProjects && Math.random() < 0.5) {
                 this.state.projects.push(this.generateProject(area, skills));
             }
         });

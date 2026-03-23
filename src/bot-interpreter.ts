@@ -9,13 +9,13 @@ export class BotInterpreter {
 
 ;; Player Access Functions
 (define (self state)
-  "Returns the bot object for the current bot (with isSelf = #t)"
-  (define (find-self bots)
+  "Returns the bot object for the current bot (by name)"
+  (define (find-self bots name)
     (cond
       ((null? bots) #f)
-      ((equal? #t (cdr (assoc 'isSelf (car bots)))) (car bots))
-      (else (find-self (cdr bots)))))
-  (find-self (cdr (assoc 'bots state))))
+      ((string=? name (cdr (assoc 'name (car bots)))) (car bots))
+      (else (find-self (cdr bots) name))))
+  (find-self (cdr (assoc 'bots state)) (cdr (assoc 'currentBotName state))))
 
 (define (energy bot)
   "Returns the energy level of a bot"
@@ -125,14 +125,6 @@ export class BotInterpreter {
                 reqs)
       ok)))
 
-;; Helper: find the first project in a given area for which the bot has enough skills
-(define (find-project-in-area state area-name)
-  (let ((ps (projects state)))
-    (find (lambda (p)
-            (and (string=? (project-area p) area-name)
-                 (has-enough-skills (self state) p)))
-          ps)))
-
 ;; Helper: find a course that teaches a specific skill
 (define (find-course-for-skill state skill-name)
   (let ((cs (courses state)))
@@ -168,7 +160,7 @@ export class BotInterpreter {
             const skillPairs = Object.entries(bot.skills || {})
                 .map(([k, v]) => `(${k} . ${v})`).join(' ');
             const offersList = bot.offers.map(o => this.toSchemeLiteral(o)).join(' ');
-            return `((id . "${bot.id}") (name . "${bot.name}") (money . ${bot.money}) (energy . ${bot.energy}) (skills . (${skillPairs})) (area . "${bot.area}") (offers . (${offersList})) (isSelf . ${bot.isSelf ? '#t' : '#f'}))`;
+            return `((id . "${bot.id}") (name . "${bot.name}") (money . ${bot.money}) (energy . ${bot.energy}) (skills . (${skillPairs})) (area . "${bot.area}") (offers . (${offersList})))`;
         });
 
         const projectsScheme = state.projects.map(proj => {
@@ -188,7 +180,10 @@ export class BotInterpreter {
 
         const areasList = state.areas.map(a => `"${a}"`).join(' ');
 
-        return `(define state '((round . ${state.round}) (bots . (${botsScheme.join(' ')})) (projects . (${projectsScheme.join(' ')})) (courses . (${coursesScheme.join(' ')})) (areas . (${areasList})) (maxRounds . ${state.maxRounds}) (phase . "${state.phase}")))`;
+        // Add currentBotName to the Scheme state if present
+        const currentBotNameEntry = state.currentBotName ? `(currentBotName . "${state.currentBotName}") ` : '';
+
+        return `(define state '(${currentBotNameEntry}(round . ${state.round}) (bots . (${botsScheme.join(' ')})) (projects . (${projectsScheme.join(' ')})) (courses . (${coursesScheme.join(' ')})) (areas . (${areasList})) (maxRounds . ${state.maxRounds}) (phase . "${state.phase}")))`;
     }
 
     // Run bot code with the game state and built-in helpers

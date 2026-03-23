@@ -9,7 +9,6 @@ export interface Bot {
   skills: Record<string, number>;
   area: string;
   offers: (string | number)[];
-  isSelf?: boolean;
 }
 
 export interface Course {
@@ -59,4 +58,5 @@ export interface GameState {
   phase: GamePhase;
   phaseEndsAt?: number;
   recentEvents: GameEvent[];
+  currentBotName?: string;
 }

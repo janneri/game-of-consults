@@ -118,3 +118,22 @@ export const RELAXATION_ACTIVITIES = [
 ];
 
 export const RELAXATION_ENERGY_RANGE = { min: 10, max: 30 };
+
+// --- Game Configuration Constants ---
+// Number of courses to show in the game (if you want to limit from all available)
+export const COURSES_PER_GAME = 5; // Set to desired number, or COURSES.length for all
+
+// Initial projects per area (min/max, inclusive)
+export const EASY_MARKET_INITIAL_PROJECTS_MIN = 3;
+export const EASY_MARKET_INITIAL_PROJECTS_MAX = 5;
+export const HARD_MARKET_INITIAL_PROJECTS_MIN = 3;
+export const HARD_MARKET_INITIAL_PROJECTS_MAX = 5;
+
+// Minimum projects to maintain per area during the game
+export const EASY_MARKET_MIN_PROJECTS = 2;
+export const HARD_MARKET_MIN_PROJECTS = 2;
+
+// Game round settings
+export const PLAY_ROUNDS_DEFAULT = 20;
+export const ROUND_DELAY_MS_DEFAULT = 2000;
+

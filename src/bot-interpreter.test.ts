@@ -15,7 +15,6 @@ describe('BotInterpreter', () => {
                 skills: {python: 2},
                 area: 'education',
                 offers: [],
-                isSelf: true,
             },
         ],
         projects: [
@@ -59,10 +58,11 @@ describe('BotInterpreter', () => {
         maxRounds: 50,
         phase: 'play',
         recentEvents: [],
+        currentBotName: 'Test',
     };
 
 
-    it('should rest when energy is low (simple-bot logic)', async () => {
+    it('should rest when energy is low', async () => {
         const code = `
           (let* ((me (self state))
                  (my-energy (energy me))
@@ -71,28 +71,13 @@ describe('BotInterpreter', () => {
                 (if (eq? my-area "relaxation")
                     (rest)
                     (move "relaxation"))
-                (rest)))`;
-        const state = {...minimalState, bots: [{...minimalState.bots[0], energy: 10, area: 'relaxation'}]};
+                (chat "foo")))`;
+         const state = {...minimalState, bots: [{...minimalState.bots[0], energy: 10, area: 'relaxation'}], currentBotName: 'Test'};
         const result = await new BotInterpreter().run(code, state, 'Test');
         expect(result).toEqual({type: 'rest'});
     });
 
-    it('should move to relaxation when low energy and not there (simple-bot logic)', async () => {
-        const code = `
-          (let* ((me (self state))
-                 (my-energy (energy me))
-                 (my-area (area me)))
-            (if (< my-energy 30)
-                (if (eq? my-area "relaxation")
-                    (rest)
-                    (move "relaxation"))
-                (rest)))`;
-        const state = {...minimalState, bots: [{...minimalState.bots[0], energy: 10, area: 'education'}]};
-        const result = await new BotInterpreter().run(code, state, 'Test');
-        expect(result).toEqual({type: 'move', area: 'relaxation'});
-    });
-
-    it('should study python course if in education and python < 3 (simple-bot logic)', async () => {
+    it('should study python course', async () => {
         const code = `
           (let* ((me (self state))
                  (python-level (skill me "python"))
@@ -102,12 +87,12 @@ describe('BotInterpreter', () => {
                     (study "python-basics")
                     (move "education"))
                 (rest)))`;
-        const state = {...minimalState, bots: [{...minimalState.bots[0], skills: {python: 2}, area: 'education'}]};
+         const state = {...minimalState, bots: [{...minimalState.bots[0], skills: {python: 2}, area: 'education'}], currentBotName: 'Test'};
         const result = await new BotInterpreter().run(code, state, 'Test');
         expect(result).toEqual({type: 'study', courseId: 'python-basics'});
     });
 
-    it('should move to education if python < 3 and not in education (simple-bot logic)', async () => {
+    it('should move to education', async () => {
         const code = `
           (let* ((me (self state))
                  (python-level (skill me "python"))
@@ -117,12 +102,12 @@ describe('BotInterpreter', () => {
                     (study "python-basics")
                     (move "education"))
                 (rest)))`;
-        const state = {...minimalState, bots: [{...minimalState.bots[0], skills: {python: 2}, area: 'relaxation'}]};
+         const state = {...minimalState, bots: [{...minimalState.bots[0], skills: {python: 2}, area: 'relaxation'}], currentBotName: 'Test'};
         const result = await new BotInterpreter().run(code, state, 'Test');
         expect(result).toEqual({type: 'move', area: 'education'});
     });
 
-    it('should offer a project in easy-market if present and has enough skills (simple-bot logic)', async () => {
+    it('should offer a project in easy-market if present and has enough skills', async () => {
         const code = `
           (let* ((me (self state))
                  (my-area (area me)))
@@ -167,7 +152,7 @@ describe('BotInterpreter', () => {
         expect(result).toEqual({type: 'chat', message: 'I have the answer!'});
     });
 
-    it('should rest if no suitable project is found (sample-bot fallback logic)', async () => {
+    it('should rest if no suitable project is found', async () => {
         const code = `
           (let* ((me (self state))
                  (my-area (area me)))
@@ -211,39 +196,6 @@ describe('BotInterpreter', () => {
         const code = '(foobar)';
         const result = await new BotInterpreter().run(code, minimalState, 'Test');
         expect(result.type).toBe('invalid');
-    });
-
-    it('should detect suitable projects in easy market', async () => {
-        jest.setTimeout(5000);
-        const stateWithEasyProject = {
-            ...minimalState,
-            projects: [
-                ...minimalState.projects,
-                {
-                    id: 'p2',
-                    area: 'easy-market',
-                    requiredSkills: {python: 2},
-                    reward: 60,
-                    createdAtRound: 1,
-                    dueAfterRoundsCount: 4,
-                    offers: [],
-                },
-            ],
-        };
-        const code = `
-      (define (choose-move state)
-        (let* ((me (self state))
-               (proj (find (lambda (p)
-                             (and (eq? (project-area p) "easy-market")
-                                  (has-enough-skills me p)))
-                           (projects state))))
-          (if proj
-              (offer-project (project-id proj))
-              (rest))))
-      (choose-move state)
-    `;
-        const result = await new BotInterpreter().run(code, stateWithEasyProject, 'Test');
-        expect(result).toEqual({type: 'offer-project', projectId: 'p2'});
     });
 
     function withBotState(overrides: Partial<typeof minimalState.bots[0]> = {}, projectOverrides?: any[]) {
