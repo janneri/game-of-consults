@@ -49,10 +49,16 @@ npm start
     ```bash
     ./send_all_bots.sh
     ```
+  - Register them on Azure by passing the deployed app URL:
+    ```bash
+    ./send_all_bots.sh https://your-app-name.azurewebsites.net
+    ```
+    Replace `your-app-name` with your App Service name.
   - Register a single bot:
     ```bash
     ./send_bot.sh bots/your-bot.scm "Your Bot Name"
     ```
+- Both scripts default to `http://localhost:3000` when no URL is provided.
 - Bots must have unique names.
 
 ## 6. Running and Managing a Game Session

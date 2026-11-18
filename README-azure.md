@@ -21,8 +21,10 @@ export GAMEOFCONSULTS_AZURE_APP_NAME=gameofconsults-demo   # must be unique, e.g
 export GAMEOFCONSULTS_AZURE_SID=<your-subscription-id>      # get from az login
 export GAMEOFCONSULTS_AZURE_RG=janne_rintanen_rg            # e.g. yourname_rg
 export GAMEOFCONSULTS_AZURE_OWNER=<your-username>           # e.g. janneri
-export GAMEOFCONSULTS_AZURE_DUE_DATE=2026-05-05             # e.g. 2026-05-05
+export GAMEOFCONSULTS_AZURE_DUE_DATE=2026-12-31             # must match your policy's DueDate pattern
 ```
+
+The current sandbox policy requires `DueDate` to match `2026-##-##`, so a date in 2027 is rejected. Ask the subscription administrator to update the policy pattern if your due date must be outside 2026.
 
 ---
 
@@ -31,7 +33,7 @@ export GAMEOFCONSULTS_AZURE_DUE_DATE=2026-05-05             # e.g. 2026-05-05
 ```sh
 az group create --name $GAMEOFCONSULTS_AZURE_RG \
     --location northeurope \
-    --tags Owner=$GAMEOFCONSULTS_AZURE_OWNER DueDate=$GAMEOFCONSULTS_AZURE_DUE_DATE
+    --tags "Owner=$GAMEOFCONSULTS_AZURE_OWNER" "DueDate=$GAMEOFCONSULTS_AZURE_DUE_DATE"
 ```
 
 ---
@@ -45,24 +47,27 @@ az appservice plan create --name ${GAMEOFCONSULTS_AZURE_APP_NAME}-plan \
 az webapp create --resource-group $GAMEOFCONSULTS_AZURE_RG \
     --plan ${GAMEOFCONSULTS_AZURE_APP_NAME}-plan \
     --name $GAMEOFCONSULTS_AZURE_APP_NAME \
-    --runtime "NODE|18-lts"
+    --runtime "NODE|24-lts"
 ```
 
 ---
 
 ## 5. Configure WebSockets (Important!)
 
-Free tier Linux does not support WebSockets. Use at least B1 tier. Enable WebSockets in the portal after deployment:
-- Go to your App Service in https://portal.azure.com/
-- Settings > Configuration > General settings > Web Sockets: **On**
+Use at least the B1 tier for WebSockets. Enable them and keep the app warm with:
+```sh
+az webapp config set --resource-group "$GAMEOFCONSULTS_AZURE_RG" \
+    --name "$GAMEOFCONSULTS_AZURE_APP_NAME" \
+    --web-sockets-enabled true --always-on true
+```
 
 ---
 
-## 6. Build Locally (Optional)
+## 6. Test the Build Locally (Optional)
 
-Test locally before deploying:
+Build and run locally before deploying:
 ```sh
-npm install
+npm ci
 npm run build
 npm start
 ```
@@ -72,15 +77,27 @@ Open http://localhost:3000/
 
 ## 7. Deploy to Azure
 
-Deploy using zip deployment:
+Enable App Service build automation so Azure installs dependencies and runs the `build` script during deployment:
 ```sh
-# Create a zip of your app (from project root)
-zip -r app.zip . -x "node_modules/*"
+az webapp config appsettings set --resource-group "$GAMEOFCONSULTS_AZURE_RG" \
+    --name "$GAMEOFCONSULTS_AZURE_APP_NAME" \
+    --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+```
 
-# Deploy to Azure
-az webapp deploy --resource-group $GAMEOFCONSULTS_AZURE_RG \
-    --name $GAMEOFCONSULTS_AZURE_APP_NAME \
-    --src-path app.zip --type zip
+From the project root, package only the app source and required build files, then deploy:
+```sh
+rm -f app.zip
+zip -r app.zip package.json package-lock.json tsconfig.json src public
+az webapp deployment source config-zip \
+    --resource-group "$GAMEOFCONSULTS_AZURE_RG" \
+    --name "$GAMEOFCONSULTS_AZURE_APP_NAME" --src app.zip
+```
+
+This Kudu ZipDeploy path runs Oryx to install dependencies and compile TypeScript. Azure CLI marks the command deprecated; `az webapp deploy --type zip` did not run the remote build in this setup and left out `dist/server.js`. Use the full source ZIP for updates so dependencies and build output are included; do not replace it with a one-file static deployment.
+
+Register the example bots against the deployed app from the project root:
+```sh
+./send_all_bots.sh "https://${GAMEOFCONSULTS_AZURE_APP_NAME}.azurewebsites.net"
 ```
 
 ---
@@ -111,4 +128,3 @@ az group delete --name $GAMEOFCONSULTS_AZURE_RG
 ---
 
 For game admin instructions, see `admin_guide.md`.
-

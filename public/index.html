@@ -1093,7 +1093,7 @@
                 <div id="start-bot-list" class="mini-bots" style="justify-content:center;"></div>
 
                 <p>Register a bot using:</p>
-                <code>curl -X POST "http://localhost:3000/register-bot?name=MyBot" \<br>  --data-binary @bots/sample-bot.scm</code>
+                <code>curl -X POST "<span id="register-bot-url"></span>?name=MyBot" \<br>  --data-binary @bots/easy-market-bot.scm</code>
 
                 <p style="margin-top: 20px; font-size: 16px;">See example bots in the <strong>bots/</strong> folder</p>
 
@@ -1260,6 +1260,9 @@
             'coffee': '☕',
             'chilling with friends': '🧑‍🤝‍🧑',
         };
+
+        document.getElementById('register-bot-url').textContent =
+            `${window.location.origin}/register-bot`;
 
         // Helper to highlight activity with icon for rest events
         function formatRestEvent(detail) {
@@ -1783,6 +1786,5 @@
     </script>
 </body>
 </html>
-
 
 

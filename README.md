@@ -18,11 +18,12 @@ The server will start at `http://localhost:3000`. Open this URL in your browser 
 
 ### Register Bots and Play
 ```bash
-# Register example bots
+# Register example bots on localhost:3000
 ./send_all_bots.sh
-# Or register a single bot
-curl -X POST "http://localhost:3000/register-bot?name=MyBot" \
-  --data-binary @bots/hard-market-bot.scm
+# Or register them on Azure
+./send_all_bots.sh https://gameofconsults-tampere.azurewebsites.net
+# Register one bot on a specific server
+./send_bot.sh bots/hard-market-bot.scm "MyBot" https://gameofconsults-tampere.azurewebsites.net
 ```
 Then click **"Start Game"** in the browser to begin the competition!
 

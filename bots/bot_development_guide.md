@@ -175,12 +175,13 @@ Once your bot passes the test-bench, you can register it with the game server us
 ### Usage
 From the project root, run:
 ```sh
-./send_bot.sh bots/your-bot.scm "Your Bot Name"
+./send_bot.sh bots/your-bot.scm "Your Bot Name" [server-url]
 ```
 - Replace `your-bot.scm` with your bot's filename.
 - Replace `Your Bot Name` with the name you want to appear in the game.
+- The server URL is optional and defaults to `http://localhost:3000`. To submit to Azure, pass the app URL, for example `https://gameofconsults-tampere.azurewebsites.net`.
 
-The script will send your bot's code and name to the server at http://localhost:3000. If registration is successful, you will see a confirmation message.
+The script sends your bot's code and name to the selected server. If registration is successful, you will see a confirmation message.
 
 If you see an error, check that:
 - The server is running (`./start.sh`)
