@@ -19,7 +19,52 @@ For more, see: [R5RS Scheme Quick Reference](https://schemers.org/Documents/Stan
 
 ## Understanding the Game State
 
-The game provides a `state` variable to your bot each turn. The structure of the game state and bot objects is defined in [src/types.ts](../src/types.ts). You can view this file for the full structure.
+The game provides a `state` variable to your bot each turn. The original game-state and bot types are defined in [src/types.ts](../src/types.ts), but the interpreter converts the data into Scheme association lists (alists). An alist is a list of key-value pairs: for example, `(energy . 74)` means that the `energy` key has the value `74`.
+
+Here is a small example of the Scheme data passed to a bot. A real game can have many bots, projects, and courses:
+
+```scheme
+(define state
+  '((currentBotName . "Ada")
+    (round . 3)
+    (bots .
+      (((id . "bot-1")
+        (name . "Ada")
+        (money . 120)
+        (energy . 74)
+        (skills . ((python . 1) (ml . 1)))
+        (area . "education")
+        (offers . ()))
+       ((id . "bot-2")
+        (name . "Lin")
+        (money . 95)
+        (energy . 60)
+        (skills . ((python . 2)))
+        (area . "easy-market")
+        (offers . ()))))
+    (projects .
+      (((id . "p1")
+        (area . "easy-market")
+        (requiredSkills . ((python . 1)))
+        (reward . 80)
+        (roundsLeft . 4)
+        (offers . ()))))
+    (courses .
+      (((id . "python-basics")
+        (name . "Python Basics")
+        (skillsGained . ((python . 1)))
+        (energyCost . 5))))
+    (areas . ("education" "relaxation" "easy-market" "hard-market"))
+    (maxRounds . 20)
+    (phase . "play")))
+```
+
+Example bots use the provided helper functions to access data in the game state. 
+For example, `(self state)` returns your bot's object, and `(energy (self state))` gets its energy. 
+
+You can also access data directly using `assoc` and `cdr`.
+For example, `(cdr (assoc 'bots state))` gets the bot list. 
+The values in alists are accessed with `assoc` and `cdr`, while the provided helpers offer shorter alternatives.
 
 ## Accessing Data in the Game State
 
