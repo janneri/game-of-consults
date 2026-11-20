@@ -1,4 +1,4 @@
-// Centralized constants for skills and areas in Game of Consults
+// Centralized constants for skills and areas in Game of Consultants
 import { Course } from './types';
 
 export const SKILLS = [
@@ -136,4 +136,3 @@ export const HARD_MARKET_MIN_PROJECTS = 2;
 // Game round settings
 export const PLAY_ROUNDS_DEFAULT = 20;
 export const ROUND_DELAY_MS_DEFAULT = 2000;
-

@@ -1,4 +1,4 @@
-# 🎮 Game of Consults
+# 🎮 Game of Consultants
 
 A competitive programming game where you write Scheme code for an AI bot (consultant), submit it to the server, and watch it compete for money by learning skills and completing projects. The server interprets your bot's code: each round, it provides the full game state as input and expects your code to return a single move (action) in response.
 
@@ -21,9 +21,9 @@ The server will start at `http://localhost:3000`. Open this URL in your browser 
 # Register starter bots on localhost:3000
 ./send_all_bots.sh
 # Or register them on Azure
-./send_all_bots.sh https://gameofconsults-tampere.azurewebsites.net
+./send_all_bots.sh https://gameofconsultants-tampere.azurewebsites.net
 # Register one bot on a specific server
-./send_bot.sh bots/easy-market-bot.scm "MyBot" https://gameofconsults-tampere.azurewebsites.net
+./send_bot.sh bots/easy-market-bot.scm "MyBot" https://gameofconsultants-tampere.azurewebsites.net
 ```
 Then click **"Start Game"** in the browser to begin the competition!
 

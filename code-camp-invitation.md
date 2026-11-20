@@ -1,8 +1,8 @@
-# Welcome to the Game of Consults Code Camp
+# Welcome to the Game of Consultants Code Camp
 
-![Game of Consults coding camp illustration](public/gofc_pic.png)
+![Game of Consultants coding camp illustration](public/gofc_pic.png)
 
-## Game of Consults: strategy meets code
+## Game of Consultants: strategy meets code
 
 We welcome you to implement a bot that makes decisions in a lively consulting marketplace. Write its strategy, test it, and submit it to the game. Will it sharpen its skills, recharge at just the right moment, or jump on a promising project? **Every decision can change the outcome.**
 
@@ -10,4 +10,4 @@ Try ideas, swap tips, and watch different strategies unfold side by side. Thereâ
 
 New to Scheme? No problem: example bots and guides will help you get started. Build solo or team up with a colleague.
 
-**Bring your laptop, follow your curiosity, and see what your code can do. See you at the Game of Consults code camp!**
+**Bring your laptop, follow your curiosity, and see what your code can do. See you at the Game of Consultants code camp!**

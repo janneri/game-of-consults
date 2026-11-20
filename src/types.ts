@@ -1,4 +1,4 @@
-// Shared types for Game of Consults
+// Shared types for Game of Consultants
 
 export interface Bot {
   id: string;

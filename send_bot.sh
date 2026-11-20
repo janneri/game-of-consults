@@ -1,6 +1,6 @@
 #!/bin/bash
 # Usage: ./send_bot.sh bots/your-bot.scm "Bot Name" [server-url]
-# Defaults to the local Game of Consults server.
+# Defaults to the local Game of Consultants server.
 
 if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
   echo "Usage: $0 <bot-file.scm> <bot-name> [server-url]"

@@ -1,4 +1,4 @@
-# Game of Consults Bot Implementation Guide
+# Game of Consultants Bot Implementation Guide
 
 ## Introduction to Scheme (R5RS)
 
@@ -221,7 +221,7 @@ From the project root, run:
 ```
 - Replace `my-name.scm` with your bot's filename.
 - Replace `Your Bot Name` with the name you want to appear in the game.
-- The server URL is optional and defaults to `http://localhost:3000`. To submit to Azure, pass the app URL, for example `https://gameofconsults-tampere.azurewebsites.net`.
+- The server URL is optional and defaults to `http://localhost:3000`. To submit to Azure, pass the app URL, for example `https://gameofconsultants-tampere.azurewebsites.net`.
 
 The script sends your bot's code and name to the selected server. If registration is successful, you will see a confirmation message.
 

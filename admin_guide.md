@@ -1,6 +1,6 @@
-# Game of Consults – Admin Guide
+# Game of Consultants – Admin Guide
 
-This guide explains how to configure, run, and manage a Game of Consults session as an administrator.
+This guide explains how to configure, run, and manage a Game of Consultants session as an administrator.
 
 ## 1. Prerequisites
 - Node.js 18+ installed
