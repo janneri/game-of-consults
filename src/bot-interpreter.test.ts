@@ -258,6 +258,19 @@ describe('BotInterpreter', () => {
         expect(result.type).toBe('invalid');
     });
 
+    it('should terminate an infinite bot loop without blocking the main thread', async () => {
+        let timerFired = false;
+        const timer = setTimeout(() => {
+            timerFired = true;
+        }, 0);
+
+        const result = await new BotInterpreter().run('(let loop () (loop))', minimalState, 'LoopBot');
+        clearTimeout(timer);
+
+        expect(timerFired).toBe(true);
+        expect(result).toEqual({type: 'invalid', reason: 'LoopBot timed out after 1s'});
+    });
+
     it('should handle project evaluation when bot lacks required skills (timeout bug reproduction)', async () => {
         // This test reproduces the bug where has-enough-skills causes infinite loop
         // when checking for skills the bot doesn't have (e.g., java when bot only has python)

@@ -1,5 +1,45 @@
-import {Interpreter} from 'biwascheme';
+import {Worker} from 'node:worker_threads';
 import {GameState, BotAction} from './types';
+
+// BiwaScheme evaluation is synchronous, so run bot code off the server event loop.
+const BOT_WORKER_SOURCE = `
+const { parentPort, workerData } = require('node:worker_threads');
+const { Interpreter } = require('biwascheme');
+
+function toPlainValue(value) {
+    if (value && typeof value.to_array === 'function') {
+        value = value.to_array();
+    } else if (value && value.car !== undefined && value.cdr !== undefined) {
+        const items = [];
+        while (value && value.car !== undefined) {
+            items.push(value.car);
+            value = value.cdr;
+            if (value === null || value === undefined || (typeof value === 'object' && Object.keys(value).length === 0)) break;
+        }
+        value = items;
+    }
+
+    if (Array.isArray(value)) return value.map(toPlainValue);
+    if (value && typeof value === 'object' && typeof value.name === 'string') return {name: value.name};
+    if (value === undefined || typeof value === 'function' || typeof value === 'symbol') return null;
+    return value;
+}
+
+function sendError(error) {
+    parentPort.postMessage({error: error && error.message ? error.message : String(error)});
+    parentPort.close();
+}
+
+const interpreter = new Interpreter(sendError);
+interpreter.evaluate(workerData.helpersCode, () => {
+    interpreter.evaluate(workerData.stateDefine, () => {
+        interpreter.evaluate(workerData.code, value => {
+            parentPort.postMessage({value: toPlainValue(value)});
+            parentPort.close();
+        });
+    });
+});
+`;
 
 export class BotInterpreter {
     // Dangerous function patterns (regex to match actual function calls)
@@ -258,64 +298,48 @@ export class BotInterpreter {
         }
 
         try {
-            const interpreter = new Interpreter();
-            // console.log('[BotInterpreter] Created interpreter');
-
-            // Inject helper functions
             const helpersCode = this.getHelperFunctions();
-            // console.log('[BotInterpreter] Injecting helpers');
-            await new Promise((resolve, reject) => {
-                interpreter.evaluate(helpersCode,
-                    () => {
-                        resolve(null);
-                    },
-                    (e: any) => {
-                        console.error('[BotInterpreter] Helpers error', e);
-                        reject(e);
-                    }
-                );
-            });
-
-            // Inject state as a Scheme define expression
             const stateDefine = this.stateToSchemeDefine(state);
-            // console.log('[BotInterpreter] State define code:', stateDefine);
-            // console.log('[BotInterpreter] Injecting state');
-            await new Promise((resolve, reject) => {
-                interpreter.evaluate(stateDefine,
-                    () => {
-                        // console.log('[BotInterpreter] State injected');
-                        resolve(null);
+            const result = await new Promise<unknown>((resolve, reject) => {
+                const worker = new Worker(BOT_WORKER_SOURCE, {
+                    eval: true,
+                    workerData: {helpersCode, stateDefine, code},
+                    resourceLimits: {
+                        maxOldGenerationSizeMb: 64,
+                        maxYoungGenerationSizeMb: 16,
+                        stackSizeMb: 4,
                     },
-                    (e: any) => {
-                        console.error('[BotInterpreter] State error', e);
-                        reject(e);
-                    }
-                );
-            });
-
-            // Execute bot code
-            // console.log('[BotInterpreter] Executing bot code:', code);
-            const result = await new Promise((resolve, reject) => {
+                });
+                let settled = false;
+                // The host-side timer can terminate this worker even if its interpreter never returns.
                 const timeout = setTimeout(() => {
-                    const who = botNameOrId ? `${botNameOrId} timed out after 1s` : 'Timed out after 1s';
-                    reject(new Error(who));
+                    void worker.terminate();
+                    finish(() => reject(new Error(
+                        botNameOrId ? `${botNameOrId} timed out after 1s` : 'Timed out after 1s'
+                    )));
                 }, 1000);
-                interpreter.evaluate(code,
-                    (v: any) => {
-                        clearTimeout(timeout);
-                        // console.log('[BotInterpreter] Code result', v);
-                        resolve(v);
-                    },
-                    (e: any) => {
-                        clearTimeout(timeout);
-                        console.error('[BotInterpreter] Code error', e);
-                        reject(e);
+                const finish = (callback: () => void) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    callback();
+                };
+
+                worker.once('message', (message: {value?: unknown; error?: string}) => {
+                    if (message.error !== undefined) {
+                        finish(() => reject(new Error(message.error)));
+                    } else {
+                        finish(() => resolve(message.value));
                     }
-                );
+                });
+                worker.once('error', error => finish(() => reject(error)));
+                worker.once('exit', code => {
+                    if (!settled) {
+                        finish(() => reject(new Error(`Bot worker exited with code ${code}`)));
+                    }
+                });
             });
 
-            // Parse the result
-            // console.log('[BotInterpreter] Parsing result');
             return this.parseAction(result);
         } catch (e: any) {
             console.error('[BotInterpreter] Exception', e); // Suppressed to avoid noisy test output
