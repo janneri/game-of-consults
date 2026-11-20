@@ -1,81 +1,30 @@
-;; Study Hard Bot - Maximizes education and skill acquisition
-;; Learns many skills then works on the most valuable projects available
-
+;; The game supplies `state` as a snapshot each turn. `self` picks this bot
+;; from it; helpers like `area` and `skill` read values from the bot.
+;; `let*` creates local names in order, so later values can use earlier ones.
 (let* ((me (self state))
-       (my-energy (energy me))
-       (my-money (money me))
        (my-area (area me))
-       (my-skills (cdr (assoc 'skills me)))
-       (total-skill-points (apply + (map cdr my-skills))))
-
-  ;; Helper: Find highest value project we can't yet do
-  (define (find-best-learning-target)
-    (let ((all-projs (projects state)))
-      (find (lambda (p)
-              (not (has-enough-skills me p)))
-            (sort all-projs (lambda (a b)
-                              (> (cdr (assoc 'reward a))
-                                 (cdr (assoc 'reward b))))))))
-
-  ;; Helper: Get missing skill from project
-  (define (get-missing-skill proj)
-    (let ((reqs (cdr (assoc 'requiredSkills proj))))
-      (find (lambda (req)
-              (let* ((skill (car req))
-                     (level (cdr req))
-                     (my-level (let ((pair (assoc skill my-skills)))
-                                 (if pair (cdr pair) 0))))
-                (< my-level level)))
-            reqs)))
-
-  ;; Helper: Find course for skill
-  (define (find-course-for-skill skill-name)
-    (find (lambda (c)
-            (let ((gains (cdr (assoc 'skillsGained c))))
-              (assoc skill-name gains)))
-          (courses state)))
-
+       ;; `skill` returns this bot's level for a skill (0 if it has none).
+       (python-level (skill me "python"))
+       ;; `projects` returns all projects. `find` checks each one using the
+       ;; `lambda` function; `and` requires both conditions to be true.
+       ;; The result is a project or #f when no project matches.
+       (project (find (lambda (p)
+                        (and (string=? (project-area p) "easy-market")
+                             (has-enough-skills me p)))
+                      (projects state))))
+  ;; `cond` checks branches in order. `<` compares the numeric skill level.
   (cond
-    ;; Rest when energy is below 30 (we study hard, rest less!)
-    ((< my-energy 30)
-     (if (eq? my-area "relaxation")
-         (rest)
-         (move "relaxation")))
-
-    ;; Study until we have 12+ total skill points
-    ((< total-skill-points 12)
-     (if (eq? my-area "education")
-         (let* ((target (find-best-learning-target))
-                (missing (if target (get-missing-skill target) #f)))
-           (if missing
-               (let ((course (find-course-for-skill (car missing))))
-                 (if course
-                     (study (course-id course))
-                     (study "kubernetes-fundamentals")))
-               ;; Build diverse skills
-               (study "kubernetes-fundamentals")))
+    ;; Study python-basics if this bot has not learned Python yet.
+    ((< python-level 1)
+     (if (string=? my-area "education")
+         (study "python-basics")
          (move "education")))
-
-    ;; Once educated, work on the most valuable projects we can do
-    ((> my-energy 55)
-     (if (eq? my-area "hard-market")
-         (let ((proj (find (lambda (p)
-                             (and (eq? (project-area p) "hard-market")
-                                  (has-enough-skills me p)))
-                           (projects state))))
-           (if proj
-               (offer-project (project-id proj))
-               (move "easy-market")))
-         (move "hard-market")))
-
-    ;; Fallback to easy market
+    ;; If a project was found, offer using its ID.
+    (project
+     (offer-project (project-id project)))
+    ;; Rest if already in the market but no suitable project is available.
+    ((string=? my-area "easy-market")
+     (rest))
+    ;; Otherwise move to the market.
     (else
-      (if (eq? my-area "easy-market")
-          (let ((proj (find (lambda (p)
-                              (and (eq? (project-area p) "easy-market")
-                                   (has-enough-skills me p)))
-                            (projects state))))
-            (if proj
-                (offer-project (project-id proj))
-                (rest)))
-          (move "easy-market")))))
+     (move "easy-market"))))

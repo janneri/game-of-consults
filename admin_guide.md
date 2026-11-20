@@ -45,7 +45,7 @@ npm start
 
 ## 5. Registering Bots
 - Use the provided scripts to register bots:
-  - Register all example bots:
+  - Register all starter bots:
     ```bash
     ./send_all_bots.sh
     ```
@@ -56,9 +56,10 @@ npm start
     Replace `your-app-name` with your App Service name.
   - Register a single bot:
     ```bash
-    ./send_bot.sh bots/your-bot.scm "Your Bot Name"
+    ./send_bot.sh bots/my-name.scm "Your Bot Name"
     ```
 - Both scripts default to `http://localhost:3000` when no URL is provided.
+- Bot files named `bots/my*.scm` are local and ignored by Git.
 - Bots must have unique names.
 
 ## 6. Running and Managing a Game Session

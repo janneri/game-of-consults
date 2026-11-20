@@ -18,12 +18,12 @@ The server will start at `http://localhost:3000`. Open this URL in your browser 
 
 ### Register Bots and Play
 ```bash
-# Register example bots on localhost:3000
+# Register starter bots on localhost:3000
 ./send_all_bots.sh
 # Or register them on Azure
 ./send_all_bots.sh https://gameofconsults-tampere.azurewebsites.net
 # Register one bot on a specific server
-./send_bot.sh bots/hard-market-bot.scm "MyBot" https://gameofconsults-tampere.azurewebsites.net
+./send_bot.sh bots/easy-market-bot.scm "MyBot" https://gameofconsults-tampere.azurewebsites.net
 ```
 Then click **"Start Game"** in the browser to begin the competition!
 
@@ -45,7 +45,7 @@ The game simulates a consulting marketplace with four areas:
 
 ## Bot Development
 
-You write your bot as Scheme code and submit it to the server. The server will interpret your code, providing the current game state as input and expecting your code to return a single move (action) each round. See [Bot Development Guide](bots/bot_development_guide.md) for all instructions on creating, testing, and submitting your bot, as well as the full Scheme API and example strategies.
+You write your bot as Scheme code and submit it to the server. The server will interpret your code, providing the current game state as input and expecting your code to return a single move (action) each round. See [Bot Development Guide](bots/bot_development_guide.md) for instructions on creating, testing, and submitting your bot, the full Scheme API, and beginner examples. Local bot files beginning with `my` are ignored by Git.
 
 ## Game Mechanics
 
@@ -94,7 +94,7 @@ Each round:
 ```
 gameofconsults/
 ├── src/                  # Game logic and server
-├── bots/                 # Example bots and bot development guide
+├── bots/                 # Local starter bots and bot development guide
 ├── public/               # Game UI
 └── README.md             # This file
 ```

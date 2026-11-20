@@ -1,65 +1,34 @@
-;; Easy Market Bot - Focuses exclusively on safe, easy market projects
-;; Maintains high energy and learns exactly what easy projects need
-
+;; The game gives the bot a `state` snapshot on every turn. It contains the
+;; current bots, projects, courses, and other game data.
+;; `self` selects this bot from the state. `let*` gives names to values, in
+;; order, so each value can use the names above it.
 (let* ((me (self state))
        (my-energy (energy me))
-       (my-money (money me))
        (my-area (area me))
-       (my-skills (cdr (assoc 'skills me))))
-
-  ;; Helper: Get first missing skill for a project
-  (define (get-missing-skill proj)
-    (let ((reqs (cdr (assoc 'requiredSkills proj))))
-      (find (lambda (req)
-              (let* ((skill (car req))
-                     (level (cdr req))
-                     (my-level (let ((pair (assoc skill my-skills)))
-                                 (if pair (cdr pair) 0))))
-                (< my-level level)))
-            reqs)))
-
-  ;; Helper: Find a course that teaches a specific skill
-  (define (find-course-teaching skill-name)
-    (find (lambda (c)
-            (let ((gains (cdr (assoc 'skillsGained c))))
-              (assoc skill-name gains)))
-          (courses state)))
-
+       ;; `projects` returns the project's list. `find` checks them one at a
+       ;; time; this `lambda` is a function that receives one project as `p`.
+       ;; A match must be in the easy market and this bot must have its skills.
+       ;; `find` returns the first matching project, or #f if there is none.
+       (project (find (lambda (p)
+                        (and (string=? (project-area p) "easy-market")
+                             (has-enough-skills me p)))
+                      (projects state))))
+  ;; `cond` checks these cases from top to bottom and runs the first match.
   (cond
-    ;; Keep energy very high - rest if below 50 (conservative!)
-    ((< my-energy 50)
-     (if (eq? my-area "relaxation")
+    ;; If energy is low, rest when already relaxing; otherwise go there.
+    ((< my-energy 30)
+     (if (string=? my-area "relaxation")
          (rest)
          (move "relaxation")))
-
-    ;; Check if we can do any easy project
-    ((not (find (lambda (p)
-                  (and (eq? (project-area p) "easy-market")
-                       (has-enough-skills me p)))
-                (projects state)))
-     ;; Can't do easy projects - learn exactly what's needed
-     (if (eq? my-area "education")
-         (let* ((easy-proj (find (lambda (p) (eq? (project-area p) "easy-market"))
-                                 (projects state)))
-                (missing-skill (if easy-proj (get-missing-skill easy-proj) #f)))
-           (if missing-skill
-               ;; Learn the missing skill
-               (let ((course (find-course-teaching (car missing-skill))))
-                 (if course
-                     (study (course-id course))
-                     (study "fullstack-bootcamp")))
-               ;; No target found, get basic skills
-               (study "python-basics")))
-         (move "education")))
-
-    ;; Work on easy market projects only - play it safe!
+    ;; A found project is true; `project-id` gets its ID for the offer action.
+    (project
+     (offer-project (project-id project)))
+    ;; `study` takes a course ID, not a skill name.
+    ((string=? my-area "education")
+     (study "python-basics"))
+    ;; Rest while waiting for an easy project to appear.
+    ((string=? my-area "easy-market")
+     (rest))
+    ;; Otherwise go to the area where easy projects are handled.
     (else
-      (if (eq? my-area "easy-market")
-          (let ((proj (find (lambda (p)
-                              (and (eq? (project-area p) "easy-market")
-                                   (has-enough-skills me p)))
-                            (projects state))))
-            (if proj
-                (offer-project (project-id proj))
-                (rest)))
-          (move "easy-market")))))
+     (move "easy-market"))))

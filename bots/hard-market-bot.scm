@@ -1,66 +1,31 @@
-;; Hard Market Bot - Focuses exclusively on high-value hard market projects
-;; Analyzes hard project requirements and learns those skills aggressively
-
+;; The game supplies `state` each turn: a snapshot containing bots, projects,
+;; courses, and other game data. `self` selects this bot from that snapshot.
+;; `let*` stores values under readable names, evaluating bindings in order.
 (let* ((me (self state))
        (my-energy (energy me))
-       (my-money (money me))
        (my-area (area me))
-       (my-skills (cdr (assoc 'skills me))))
-
-  ;; Helper: Get first missing skill for a project
-  (define (get-missing-skill proj)
-    (let ((reqs (cdr (assoc 'requiredSkills proj))))
-      (find (lambda (req)
-              (let* ((skill (car req))
-                     (level (cdr req))
-                     (my-level (let ((pair (assoc skill my-skills)))
-                                 (if pair (cdr pair) 0))))
-                (< my-level level)))
-            reqs)))
-
-  ;; Helper: Find course that teaches a skill
-  (define (find-course-for-skill skill-name)
-    (find (lambda (c)
-            (let ((gains (cdr (assoc 'skillsGained c))))
-              (assoc skill-name gains)))
-          (courses state)))
-
+       ;; `projects` gets the project list. `find` tests each project with the
+       ;; function made by `lambda`; it returns the first match or #f.
+       ;; `project-area` reads a project's area, and `has-enough-skills`
+       ;; checks this bot against that project's requirements.
+       (project (find (lambda (p)
+                        (and (string=? (project-area p) "hard-market")
+                             (has-enough-skills me p)))
+                      (projects state))))
+  ;; `cond` tests each condition in order and returns the action for the first
+  ;; true condition.
   (cond
-    ;; Rest when energy is below 40 (need good buffer for hard projects)
-    ((< my-energy 40)
-     (if (eq? my-area "relaxation")
+    ;; Save energy: rest if already in relaxation, otherwise move there.
+    ((< my-energy 30)
+     (if (string=? my-area "relaxation")
          (rest)
          (move "relaxation")))
-
-    ;; Check if we can do any hard market projects
-    ((not (find (lambda (p)
-                  (and (eq? (project-area p) "hard-market")
-                       (has-enough-skills me p)))
-                (projects state)))
-     ;; Can't do hard projects yet - learn what's needed
-     (if (eq? my-area "education")
-         (let* ((hard-proj (find (lambda (p) (eq? (project-area p) "hard-market"))
-                                 (projects state)))
-                (missing (if hard-proj (get-missing-skill hard-proj) #f)))
-           (if missing
-               ;; Study course for the missing skill
-               (let ((course (find-course-for-skill (car missing))))
-                 (if course
-                     (study (course-id course))
-                     (study "ml-advanced")))
-               ;; No hard projects exist yet, build advanced skills
-               (study "ml-advanced")))
-         (move "education")))
-
-    ;; We have skills for hard market - go hunt big projects!
+    ;; `find` returned a project; get its ID and offer to work on it.
+    (project
+     (offer-project (project-id project)))
+    ;; Learn from a course by passing its ID to `study`.
+    ((string=? my-area "education")
+     (study "ml-intro"))
+    ;; If there is no suitable project yet, go to education.
     (else
-     (if (eq? my-area "hard-market")
-         (let ((proj (find (lambda (p)
-                             (and (eq? (project-area p) "hard-market")
-                                  (has-enough-skills me p)))
-                           (projects state))))
-           (if proj
-               (offer-project (project-id proj))
-               ;; No doable hard projects right now, learn more
-               (move "education")))
-         (move "hard-market")))))
+     (move "education"))))

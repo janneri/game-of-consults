@@ -64,6 +64,7 @@ Helper functions like `(money bot)` and `(energy bot)` are provided for convenie
 ## 1. Writing Your Bot
 
 - Bots are written in Scheme (R5RS) and submitted as `.scm` files.
+- Name your local bot `bots/my-name.scm`; files beginning with `my` are ignored by Git.
 - Your bot's code must return **one action per turn** (move, rest, study, offer-project, or chat).
 - The game injects a `state` variable and several helpers for you. You do **not** need to define these yourself.
 
@@ -71,19 +72,15 @@ Helper functions like `(money bot)` and `(energy bot)` are provided for convenie
 ```scheme
 (let* ((me (self state))
        (my-energy (energy me))
-       (proj (find (lambda (p)
-                     (has-enough-skills me p))
-                   (projects state))))
-  (cond
-    ((< my-energy 30)
-     (if (string=? (area me) "relaxation")
-         (rest)
-         (move "relaxation")))
-    (proj
-     (offer-project (project-id proj)))
-    (else
-     (chat "nothing to do"))))
+       (my-area (area me)))
+  (if (< my-energy 30)
+      (if (string=? my-area "relaxation")
+          (rest)
+          (move "relaxation"))
+      (move "easy-market")))
 ```
+
+The starter bots use these same building blocks: `let*` stores values, `if` and `cond` choose what to do, and helpers such as `move`, `rest`, and `study` return actions.
 
 ### Available Helper Functions
 - **Bot Info**
@@ -153,7 +150,7 @@ This will test all `.scm` files in the `bots/` directory and print a summary.
 
 ### How to Test a Single Bot
 ```sh
-node test-bot-interpreter.js bots/your-bot.scm
+node test-bot-interpreter.js bots/my-name.scm
 ```
 
 - The script will print `OK` if your bot returns a valid action, or `FAIL`/`ERROR` if not.
@@ -175,9 +172,9 @@ Once your bot passes the test-bench, you can register it with the game server us
 ### Usage
 From the project root, run:
 ```sh
-./send_bot.sh bots/your-bot.scm "Your Bot Name" [server-url]
+./send_bot.sh bots/my-name.scm "Your Bot Name" [server-url]
 ```
-- Replace `your-bot.scm` with your bot's filename.
+- Replace `my-name.scm` with your bot's filename.
 - Replace `Your Bot Name` with the name you want to appear in the game.
 - The server URL is optional and defaults to `http://localhost:3000`. To submit to Azure, pass the app URL, for example `https://gameofconsults-tampere.azurewebsites.net`.
 
