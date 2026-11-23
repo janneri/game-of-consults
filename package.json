@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node dist/server.js",
     "build": "tsc",
-    "test": "jest"
+    "test": "jest",
+    "test:bot": "npm run build && node test-bot-bench.js"
   },
   "dependencies": {
     "biwascheme": "^0.8.3",

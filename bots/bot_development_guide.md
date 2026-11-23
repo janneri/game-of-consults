@@ -201,6 +201,14 @@ node test-bot-interpreter.js bots/my-name.scm
 - The script will print `OK` if your bot returns a valid action, or `FAIL`/`ERROR` if not.
 - If your bot times out or returns an invalid action, check your logic and ensure you use the helpers as described above.
 
+### Scenario Test Bench
+Run the scenario test bench against your bot:
+```sh
+npm run test:bot -- bots/my-name.scm
+```
+
+It builds the project, loads the `.scm` file, and runs it against several predefined game states. For each state it prints the bot's energy, area, skills, available projects and courses, some potentially good moves, and the bot's response. Each case is marked `SUCCESS` if the action is applicable or `FAILED` if it is invalid for that state; a summary lists both groups at the end. `SUCCESS` does not mean the move is strategically optimal.
+
 ## 4. Debugging Tips
 - Make sure you use only the provided helpers for accessing state and actions.
 - Do not define your own `state` or helper functions with the same names.
