@@ -33,6 +33,12 @@ describe('BotInterpreter Security', () => {
         // Note: May be caught by multiple patterns (child_process, require, js-eval)
     });
 
+    it('should reject forbidden JavaScript interop during registration validation', () => {
+        const result = new BotInterpreter().validateCode('(js-eval "1 + 1")');
+        expect(result.valid).toBe(false);
+        expect(result.reason).toContain('js-eval');
+    });
+
     it('should block js-load', async () => {
         const code = `(js-load "some-file.js")`;
         const result = await new BotInterpreter().run(code, minimalState, 'TestBot');
@@ -152,5 +158,4 @@ describe('BotInterpreter Security', () => {
         expect(result.type).toBe('rest'); // energy is 80, so should rest
     });
 });
-
 

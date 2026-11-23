@@ -3,11 +3,13 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { GameEngine } from './game-engine';
+import { BotInterpreter } from './bot-interpreter';
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const gameEngine = new GameEngine();
+const botInterpreter = new BotInterpreter();
 
 // Setup game engine callbacks for broadcasting
 
@@ -32,6 +34,10 @@ app.post('/register-bot', express.text({ type: '*/*' }), (req, res) => {
   }
   if (typeof code !== 'string' || code.trim().length === 0) {
     return res.status(400).json({ error: 'Code must be non-empty plain text.' });
+  }
+  const validation = botInterpreter.validateCode(code);
+  if (!validation.valid) {
+    return res.status(400).json({ error: validation.reason || 'Invalid bot code.' });
   }
   // Check uniqueness (case-insensitive)
   const bots = gameEngine.getState().bots;

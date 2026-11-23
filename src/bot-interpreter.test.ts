@@ -258,6 +258,17 @@ describe('BotInterpreter', () => {
         expect(result.type).toBe('invalid');
     });
 
+    it('should reject malformed Scheme without executing the bot', () => {
+        const result = new BotInterpreter().validateCode('(let* ((me (self state)) (rest)');
+        expect(result.valid).toBe(false);
+        expect(result.reason).toContain('Invalid Scheme syntax:');
+    });
+
+    it('should validate syntax without rejecting a valid loop at registration time', () => {
+        const result = new BotInterpreter().validateCode('(let loop () (loop))');
+        expect(result).toEqual({valid: true});
+    });
+
     it('should terminate an infinite bot loop without blocking the main thread', async () => {
         let timerFired = false;
         const timer = setTimeout(() => {

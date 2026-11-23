@@ -1,3 +1,4 @@
+import {Compiler, Parser} from 'biwascheme';
 import {Worker} from 'node:worker_threads';
 import {GameState, BotAction} from './types';
 
@@ -87,6 +88,29 @@ export class BotInterpreter {
             }
         }
         return { valid: true };
+    }
+
+    validateCode(code: string): {valid: boolean; reason?: string} {
+        const patternValidation = this.validateBotCode(code);
+        if (!patternValidation.valid) {
+            return patternValidation;
+        }
+
+        try {
+            const expressions = Parser.parse(code);
+            if (expressions.length === 0) {
+                return {valid: false, reason: 'Bot code must contain at least one Scheme expression.'};
+            }
+
+            for (const expression of expressions) {
+                new Compiler().run(Compiler.expand(expression));
+            }
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            return {valid: false, reason: `Invalid Scheme syntax: ${detail}`};
+        }
+
+        return {valid: true};
     }
 
     // Helper functions code to inject into the environment
@@ -292,7 +316,7 @@ export class BotInterpreter {
     // Run bot code with the game state and built-in helpers
     async run(code: string, state: GameState, botNameOrId?: string): Promise<BotAction> {
         // Validate bot code first
-        const validation = this.validateBotCode(code);
+        const validation = this.validateCode(code);
         if (!validation.valid) {
             return { type: 'invalid', reason: validation.reason || 'Invalid bot code' };
         }
